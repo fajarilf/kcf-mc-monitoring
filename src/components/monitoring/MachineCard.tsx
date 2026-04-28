@@ -43,7 +43,7 @@ export function MachineCard({ machine }: { machine: Machine }) {
   const accent = statusAccent[machine.status];
 
   useEffect(() => {
-    if (!isRunning) return;
+    // if (!isRunning) return;
     const id = setInterval(() => setSeconds((s) => s + 1), 1000);
     return () => clearInterval(id);
   }, [isRunning]);
@@ -63,7 +63,7 @@ export function MachineCard({ machine }: { machine: Machine }) {
       <span
         aria-hidden
         className={cn(
-          "pointer-events-none absolute inset-0 bg-gradient-to-br to-transparent opacity-60",
+          "pointer-events-none absolute inset-0 bg-linear-to-br to-transparent opacity-60",
           accent.glow,
         )}
       />
@@ -89,7 +89,7 @@ export function MachineCard({ machine }: { machine: Machine }) {
         </Badge>
       </CardHeader>
       <CardContent className="relative flex flex-1 flex-col gap-4 pl-5">
-        <div className="grid gap-2 text-sm">
+        <div className="flex gap-2 text-sm">
           <div className="flex items-center gap-2 text-muted-foreground">
             <Package className="size-4 shrink-0" />
             <span className="truncate">
@@ -114,8 +114,8 @@ export function MachineCard({ machine }: { machine: Machine }) {
           </div>
           <div
             className={cn(
-              "font-mono text-2xl font-semibold tracking-wider tabular-nums",
-              isRunning ? "text-foreground" : "text-muted-foreground",
+              "font-mono text-2xl font-semibold tracking-wider tabular-nums text-foreground",
+              // isRunning ? "text-foreground" : "text-muted-foreground",
             )}
           >
             {formatHMS(seconds)}
