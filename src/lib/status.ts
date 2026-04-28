@@ -21,6 +21,13 @@ export const statusFillHex: Record<MachineStatus, string> = {
   inactive: "#f43f5e",
 };
 
+export function withAlpha(hex: string, alpha: number): string {
+  const a = Math.round(alpha * 255)
+    .toString(16)
+    .padStart(2, "0");
+  return `${hex}${a}`;
+}
+
 export function formatHMS(totalSeconds: number): string {
   const s = Math.max(0, Math.floor(totalSeconds));
   const h = Math.floor(s / 3600);

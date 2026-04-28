@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Activity, PauseCircle, XCircle } from "lucide-react";
 import {
   Card,
@@ -11,39 +11,42 @@ import {
 } from "@/components/ui/card";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { GanttBarChart } from "@/components/dashboard/GanttBarChart";
-import { ganttData, machines } from "@/lib/mock-data";
+import { ganttData, machines, type GanttRow } from "@/lib/mock-data";
+import { useNowTicker } from "@/hooks/use-mounted-now";
 
-type Period = "today" | "lastWeek" | "lastMonth";
+const TICKS = 6;
 
-const periodConfig: Record<
-  Period,
-  { label: string; totalUnits: number; unitLabel: string; ticks: number; formatTick?: (n: number) => string }
-> = {
-  today: {
-    label: "Today",
-    totalUnits: 24,
-    unitLabel: "h",
-    ticks: 6,
-    formatTick: (h: number) => `${String(h % 24).padStart(2, "0")}:00`,
-  },
-  lastWeek: {
-    label: "Last Week",
-    totalUnits: 7 * 24,
-    unitLabel: "h",
-    ticks: 7,
-    formatTick: (h: number) => `D${Math.round(h / 24) + 1}`,
-  },
-  lastMonth: {
-    label: "Last Month",
-    totalUnits: 30 * 24,
-    unitLabel: "h",
-    ticks: 10,
-    formatTick: (h: number) => `D${Math.round(h / 24) + 1}`,
-  },
-};
+function formatClock(h: number, addSecond: boolean = true): string {
+  const wrapped = ((h % 24) + 24) % 24;
+  const hh = Math.floor(wrapped);
+  const remaining = (wrapped - hh) * 60;
+  const mm = Math.floor(remaining);
+  const ss = Math.round((remaining - mm) * 60);
+
+  const clockFormat: string = addSecond ? 
+    `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`:
+    `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+
+  return clockFormat;
+}
+
+function truncateRows(rows: GanttRow[], cutoffHours: number): GanttRow[] {
+  return rows.map((row) => ({
+    ...row,
+    segments: row.segments
+      .filter((seg) => seg.start < cutoffHours)
+      .map((seg) => {
+        const remaining = cutoffHours - seg.start;
+        return {
+          ...seg,
+          duration: Math.min(seg.duration, remaining),
+        };
+      }),
+  }));
+}
 
 export default function DashboardPage() {
-  const [period] = useState<Period>("today");
+  const now = useNowTicker(1000);
 
   const counts = useMemo(() => {
     return {
@@ -53,13 +56,15 @@ export default function DashboardPage() {
     };
   }, []);
 
-  const cfg = periodConfig[period];
-  const rows =
-    period === "today"
-      ? ganttData.today
-      : period === "lastWeek"
-        ? ganttData.lastWeek
-        : ganttData.lastMonth;
+  const { rows, hourOfDay } = useMemo(() => {
+    const fullRows = ganttData.today;
+    if (now === null) {
+      return { rows: fullRows, hourOfDay: 24 };
+    }
+    const d = new Date(now);
+    const h = d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
+    return { rows: truncateRows(fullRows, h), hourOfDay: h };
+  }, [now]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -89,17 +94,18 @@ export default function DashboardPage() {
           <div className="mx-auto text-center">
             <CardTitle className="text-[20px] mb-2">Machine Activity</CardTitle>
             <CardDescription>
-              Status timeline across all machines
+              Live status timeline · {formatClock(hourOfDay)}
             </CardDescription>
           </div>
         </CardHeader>
         <CardContent>
           <GanttBarChart
             rows={rows}
-            totalUnits={cfg.totalUnits}
-            unitLabel={cfg.unitLabel}
-            tickCount={cfg.ticks}
-            formatTick={cfg.formatTick}
+            totalUnits={24}
+            unitLabel="h"
+            tickCount={TICKS}
+            formatTick={(h) => formatClock(h, false)}
+            formatClock={formatClock}
           />
         </CardContent>
       </Card>

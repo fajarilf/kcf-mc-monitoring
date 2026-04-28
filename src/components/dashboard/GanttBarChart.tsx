@@ -14,7 +14,7 @@ import {
 import { Bar } from "react-chartjs-2";
 import { useTheme } from "next-themes";
 import type { GanttRow } from "@/lib/mock-data";
-import { statusFillHex, statusLabel } from "@/lib/status";
+import { statusFillHex, statusLabel, withAlpha } from "@/lib/status";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
@@ -24,6 +24,7 @@ interface Props {
   unitLabel: string;
   tickCount?: number;
   formatTick?: (n: number) => string;
+  formatClock?: (unit: number) => string;
 }
 
 type FloatBar = [number, number] | null;
@@ -34,6 +35,7 @@ export function GanttBarChart({
   unitLabel,
   tickCount = 6,
   formatTick,
+  formatClock,
 }: Props) {
   const { data, segLabelsByDataset } = useMemo(() => {
     const labels = rows.map((r) => r.machineName);
@@ -51,7 +53,7 @@ export function GanttBarChart({
       });
       const backgroundColor = rows.map((r) => {
         const seg = r.segments[slot];
-        return seg ? statusFillHex[seg.status] : "rgba(0,0,0,0)";
+        return seg ? withAlpha(statusFillHex[seg.status], 0.70) : "rgba(0,0,0,0)";
       });
       segLabelsByDataset.push(
         rows.map((r) => {
@@ -116,6 +118,9 @@ export function GanttBarChart({
             const status =
               segLabelsByDataset[ctx.datasetIndex]?.[ctx.dataIndex] ?? "";
             const dur = (raw[1] - raw[0]).toFixed(1);
+            if (formatClock) {
+              return `${machine} • ${status} • ${formatClock(raw[0])} → ${formatClock(raw[1])} (${dur}${unitLabel})`;
+            }
             return `${machine} • ${status} • ${dur}${unitLabel}`;
           },
         },
