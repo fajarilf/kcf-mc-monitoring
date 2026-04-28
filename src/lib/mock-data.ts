@@ -152,13 +152,70 @@ function buildRows(totalHours: number, seedOffset: number): GanttRow[] {
 
 export const ganttData: {
   today: GanttRow[];
+  lastThreeDays: GanttRow[];
   lastWeek: GanttRow[];
   lastMonth: GanttRow[];
 } = {
   today: buildRows(24, 1),
+  lastThreeDays: buildRows(3 * 24, 7),
   lastWeek: buildRows(7 * 24, 3),
   lastMonth: buildRows(30 * 24, 5),
 };
+
+export type ActivityPeriod = "lastThreeDays" | "lastWeek" | "lastMonth";
+
+export const activityPeriodHours: Record<ActivityPeriod, number> = {
+  lastThreeDays: 3 * 24,
+  lastWeek: 7 * 24,
+  lastMonth: 30 * 24,
+};
+
+export const activityPeriodLabel: Record<ActivityPeriod, string> = {
+  lastThreeDays: "Last 3 Days",
+  lastWeek: "Last Week",
+  lastMonth: "Last Month",
+};
+
+export function getMachineSegments(
+  machineId: string,
+  period: ActivityPeriod,
+): GanttSegment[] {
+  const row = ganttData[period].find((r) => r.machineId === machineId);
+  return row?.segments ?? [];
+}
+
+export function getDailyHoursByStatus(
+  machineId: string,
+  period: ActivityPeriod,
+): Record<MachineStatus, number[]> {
+  const totalHours = activityPeriodHours[period];
+  const segments = getMachineSegments(machineId, period);
+  const days = Math.ceil(totalHours / 24);
+  const result: Record<MachineStatus, number[]> = {
+    active: new Array(days).fill(0) as number[],
+    idle: new Array(days).fill(0) as number[],
+    inactive: new Array(days).fill(0) as number[],
+  };
+  for (const seg of segments) {
+    let s = seg.start;
+    const e = seg.start + seg.duration;
+    while (s < e) {
+      const day = Math.min(days - 1, Math.floor(s / 24));
+      const dayEnd = (day + 1) * 24;
+      const portion = Math.min(e, dayEnd) - s;
+      result[seg.status][day] += portion;
+      s += portion;
+    }
+  }
+  return result;
+}
+
+export function getDailyActiveHours(
+  machineId: string,
+  period: ActivityPeriod,
+): number[] {
+  return getDailyHoursByStatus(machineId, period).active;
+}
 
 export type UserStatus = "pending" | "approved" | "rejected";
 export type UserRole = "admin" | "user";

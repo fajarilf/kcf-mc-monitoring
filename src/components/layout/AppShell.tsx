@@ -11,7 +11,9 @@ const NAKED_ROUTES = ["/login", "/register"];
 
 function pageTitleFor(pathname: string): string {
   if (pathname.startsWith("/dashboard")) return "Dashboard";
-  if (pathname.startsWith("/monitoring")) return "Machine Monitoring";
+  if (pathname === "/monitoring" || pathname === "/monitoring/")
+    return "Machine Monitoring";
+  if (pathname.startsWith("/monitoring/")) return "Machine Detail";
   if (pathname.startsWith("/history")) return "History";
   if (pathname.startsWith("/user-management")) return "User Management";
   return "";
@@ -25,7 +27,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     (r) => pathname === r || pathname.startsWith(r + "/"),
   );
 
-  const formatDateTime = dateTime.toLocaleString("en-US", {hour12: false});
+  const formatDateTime = dateTime?.toLocaleString("en-US", {hour12: false});
 
   if (naked) {
     return <div className="min-h-svh flex flex-col">{children}</div>;
