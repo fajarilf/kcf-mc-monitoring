@@ -72,9 +72,8 @@ export function MachineCard({ machine }: { machine: Machine }) {
           <div className="flex items-center gap-2">
             <span
               className={cn(
-                "inline-block size-2 rounded-full",
+                "inline-block size-2 rounded-full animate-pulse",
                 accent.dot,
-                isRunning && "animate-pulse",
               )}
             />
             <CardTitle className="text-base">{machine.name}</CardTitle>
@@ -102,7 +101,7 @@ export function MachineCard({ machine }: { machine: Machine }) {
             <User className="size-4 shrink-0" />
             <span className="truncate">
               <span className="text-foreground">
-                {machine.operator || "-"}
+                {machine.operators[0]}
               </span>
             </span>
           </div>

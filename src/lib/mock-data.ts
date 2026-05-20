@@ -5,7 +5,7 @@ export interface Machine {
   name: string;
   status: MachineStatus;
   currentProduct: string;
-  operator: string;
+  operators: string[];
   elapsedSeconds: number;
   productCount: number;
 }
@@ -16,7 +16,7 @@ export const machines: Machine[] = [
     name: "Machine A",
     status: "active",
     currentProduct: "Bracket Type-X",
-    operator: "Budi Santoso",
+    operators: ["Budi Santoso", "Siti Rahma"],
     elapsedSeconds: 3600,
     productCount: 142,
   },
@@ -25,7 +25,7 @@ export const machines: Machine[] = [
     name: "Machine B",
     status: "active",
     currentProduct: "Plate Y-200",
-    operator: "Siti Rahma",
+    operators: ["Siti Rahma", "Andi Wijaya", "Dewi Lestari"],
     elapsedSeconds: 1820,
     productCount: 88,
   },
@@ -34,7 +34,7 @@ export const machines: Machine[] = [
     name: "Machine C",
     status: "idle",
     currentProduct: "Shaft Z-12",
-    operator: "Andi Wijaya",
+    operators: ["Andi Wijaya", "Rizky Pratama"],
     elapsedSeconds: 540,
     productCount: 36,
   },
@@ -43,7 +43,7 @@ export const machines: Machine[] = [
     name: "Machine D",
     status: "inactive",
     currentProduct: "-",
-    operator: "-",
+    operators: ["Lina Marlina", "Tono Setiawan"],
     elapsedSeconds: 0,
     productCount: 0,
   },
@@ -52,7 +52,7 @@ export const machines: Machine[] = [
     name: "Machine E",
     status: "active",
     currentProduct: "Gear G-08",
-    operator: "Dewi Lestari",
+    operators: ["Dewi Lestari", "Maya Putri", "Budi Santoso"],
     elapsedSeconds: 7320,
     productCount: 305,
   },
@@ -61,7 +61,7 @@ export const machines: Machine[] = [
     name: "Machine F",
     status: "idle",
     currentProduct: "Housing H-04",
-    operator: "Rizky Pratama",
+    operators: ["Rizky Pratama", "Lina Marlina"],
     elapsedSeconds: 240,
     productCount: 12,
   },
@@ -70,7 +70,7 @@ export const machines: Machine[] = [
     name: "Machine G",
     status: "active",
     currentProduct: "Cover C-15",
-    operator: "Lina Marlina",
+    operators: ["Lina Marlina", "Tono Setiawan"],
     elapsedSeconds: 980,
     productCount: 47,
   },
@@ -79,7 +79,7 @@ export const machines: Machine[] = [
     name: "Machine H",
     status: "inactive",
     currentProduct: "-",
-    operator: "-",
+    operators: ["Tono Setiawan", "Maya Putri"],
     elapsedSeconds: 0,
     productCount: 0,
   },
@@ -88,7 +88,7 @@ export const machines: Machine[] = [
     name: "Machine I",
     status: "active",
     currentProduct: "Frame F-22",
-    operator: "Tono Setiawan",
+    operators: ["Tono Setiawan", "Andi Wijaya", "Maya Putri"],
     elapsedSeconds: 4200,
     productCount: 191,
   },
@@ -97,7 +97,7 @@ export const machines: Machine[] = [
     name: "Machine J",
     status: "idle",
     currentProduct: "Hinge HN-3",
-    operator: "Maya Putri",
+    operators: ["Maya Putri", "Budi Santoso"],
     elapsedSeconds: 120,
     productCount: 8,
   },

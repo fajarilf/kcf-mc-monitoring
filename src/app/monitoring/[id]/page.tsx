@@ -62,12 +62,11 @@ export default function MachineDetailPage() {
     setSeconds(machine?.elapsedSeconds ?? 0);
   }, [machine?.id, machine?.elapsedSeconds]);
 
-  const isRunning = machine?.status === "active";
+  // const isRunning = machine?.status === "active";
   useEffect(() => {
-    if (!isRunning) return;
     const id = setInterval(() => setSeconds((s) => s + 1), 1000);
     return () => clearInterval(id);
-  }, [isRunning]);
+  }, []);
 
   if (!machine) {
     return (
@@ -136,9 +135,9 @@ export default function MachineDetailPage() {
               <div className="flex items-center gap-2">
                 <span
                   className={cn(
-                    "inline-block size-2.5 rounded-full",
+                    "inline-block size-2.5 rounded-full animate-pulse",
                     accentDot[machine.status],
-                    isRunning && "animate-pulse",
+                    // isRunning && "animate-pulse",
                   )}
                 />
                 <CardTitle className="text-2xl">{machine.name}</CardTitle>
@@ -164,7 +163,7 @@ export default function MachineDetailPage() {
           <Metric
             icon={<UserIcon className="size-4" />}
             label="Operator"
-            value={machine.operator || "-"}
+            value={machine.operators[0]}
           />
           <Metric
             icon={<Hash className="size-4" />}
@@ -179,7 +178,6 @@ export default function MachineDetailPage() {
             <div
               className={cn(
                 "font-mono text-2xl font-semibold tracking-wider tabular-nums",
-                isRunning ? "text-foreground" : "text-muted-foreground",
               )}
             >
               {formatHMS(seconds)}
