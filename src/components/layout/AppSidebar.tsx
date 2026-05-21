@@ -7,6 +7,8 @@ import {
   Monitor,
   History,
   Users,
+  User,
+  QrCode,
   LogOut,
   LogIn,
   Activity,
@@ -32,6 +34,8 @@ const navItems = [
   { label: "Machine Monitoring", href: "/monitoring", icon: Monitor },
   { label: "History", href: "/history", icon: History },
   { label: "User Management", href: "/user-management", icon: Users },
+  { label: "User", href: "/user", icon: User },
+  { label: "QR Generator", href: "/qr-generator", icon: QrCode },
 ];
 
 export function AppSidebar() {

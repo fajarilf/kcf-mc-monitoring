@@ -16,6 +16,8 @@ function pageTitleFor(pathname: string): string {
   if (pathname.startsWith("/monitoring/")) return "Machine Detail";
   if (pathname.startsWith("/history")) return "History";
   if (pathname.startsWith("/user-management")) return "User Management";
+  if (pathname.startsWith("/user")) return "User";
+  if (pathname.startsWith("/qr-generator")) return "QR Generator";
   return "";
 }
 
