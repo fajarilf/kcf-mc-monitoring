@@ -14,7 +14,12 @@ import {
 import { Bar } from "react-chartjs-2";
 import { useTheme } from "next-themes";
 import type { GanttRow } from "@/lib/mock-data";
-import { statusFillHex, statusLabel, withAlpha } from "@/lib/status";
+import {
+  MACHINE_STATUS,
+  statusFillHex,
+  statusLabel,
+  withAlpha,
+} from "@/lib/status";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
@@ -154,7 +159,12 @@ export function GanttBarChart({
   return (
     <div className="w-full">
       <div className="mb-3 flex flex-wrap gap-4 text-xs">
-        {(["active", "idle", "inactive"] as const).map((s) => (
+        {[
+          MACHINE_STATUS.OFF,
+          MACHINE_STATUS.RUNNING,
+          MACHINE_STATUS.CYOKOTEI_STOP,
+          MACHINE_STATUS.SETUP,
+        ].map((s) => (
           <div key={s} className="flex items-center gap-2">
             <span
               className="inline-block size-3 rounded-sm"

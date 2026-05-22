@@ -27,22 +27,32 @@ import {
   machines,
   type ActivityPeriod,
 } from "@/lib/mock-data";
-import { formatHMS, statusColorClass, statusLabel } from "@/lib/status";
+import {
+  formatHMS,
+  MACHINE_STATUS,
+  statusColorClass,
+  statusLabel,
+} from "@/lib/status";
 import { MachineActivityChart } from "@/components/monitoring/MachineActivityChart";
 import { MachineActivityTable } from "@/components/monitoring/MachineActivityTable";
 
 const PERIODS: ActivityPeriod[] = ["lastThreeDays", "lastWeek", "lastMonth"];
 
-const accentBar: Record<string, string> = {
-  active: "bg-emerald-500",
-  idle: "bg-amber-500",
-  inactive: "bg-rose-500",
+const accentBar: Record<MACHINE_STATUS, string> = {
+  [MACHINE_STATUS.OFF]: "bg-slate-500",
+  [MACHINE_STATUS.RUNNING]: "bg-emerald-500",
+  [MACHINE_STATUS.CYOKOTEI_STOP]: "bg-rose-500",
+  [MACHINE_STATUS.SETUP]: "bg-amber-500",
 };
 
-const accentDot: Record<string, string> = {
-  active: "bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.18)]",
-  idle: "bg-amber-500 shadow-[0_0_0_3px_rgba(245,158,11,0.18)]",
-  inactive: "bg-rose-500 shadow-[0_0_0_3px_rgba(244,63,94,0.18)]",
+const accentDot: Record<MACHINE_STATUS, string> = {
+  [MACHINE_STATUS.OFF]: "bg-slate-500 shadow-[0_0_0_3px_rgba(100,116,139,0.18)]",
+  [MACHINE_STATUS.RUNNING]:
+    "bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.18)]",
+  [MACHINE_STATUS.CYOKOTEI_STOP]:
+    "bg-rose-500 shadow-[0_0_0_3px_rgba(244,63,94,0.18)]",
+  [MACHINE_STATUS.SETUP]:
+    "bg-amber-500 shadow-[0_0_0_3px_rgba(245,158,11,0.18)]",
 };
 
 export default function MachineDetailPage() {

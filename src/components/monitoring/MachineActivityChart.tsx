@@ -19,9 +19,13 @@ import {
   activityPeriodHours,
   getDailyHoursByStatus,
   type ActivityPeriod,
-  type MachineStatus,
 } from "@/lib/mock-data";
-import { statusFillHex, statusLabel, withAlpha } from "@/lib/status";
+import {
+  MACHINE_STATUS,
+  statusFillHex,
+  statusLabel,
+  withAlpha,
+} from "@/lib/status";
 import { useMountedNow } from "@/hooks/use-mounted-now";
 
 ChartJS.register(
@@ -39,7 +43,12 @@ interface Props {
   period: ActivityPeriod;
 }
 
-const STATUSES: MachineStatus[] = ["active", "idle", "inactive"];
+const STATUSES: MACHINE_STATUS[] = [
+  MACHINE_STATUS.OFF,
+  MACHINE_STATUS.RUNNING,
+  MACHINE_STATUS.CYOKOTEI_STOP,
+  MACHINE_STATUS.SETUP,
+];
 
 export function MachineActivityChart({ machineId, period }: Props) {
   const { resolvedTheme } = useTheme();

@@ -10,35 +10,46 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { Machine, MachineStatus } from "@/lib/mock-data";
-import { formatHMS, statusColorClass, statusLabel } from "@/lib/status";
+import type { Machine } from "@/lib/mock-data";
+import {
+  formatHMS,
+  MACHINE_STATUS,
+  statusColorClass,
+  statusLabel,
+} from "@/lib/status";
 
 const statusAccent: Record<
-  MachineStatus,
+  MACHINE_STATUS,
   { ring: string; glow: string; dot: string; bar: string }
 > = {
-  active: {
+  [MACHINE_STATUS.RUNNING]: {
     ring: "ring-emerald-500/30 dark:ring-emerald-400/30",
     glow: "from-emerald-500/10",
     dot: "bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.18)]",
     bar: "bg-emerald-500",
   },
-  idle: {
+  [MACHINE_STATUS.SETUP]: {
     ring: "ring-amber-500/30 dark:ring-amber-400/30",
     glow: "from-amber-500/10",
     dot: "bg-amber-500 shadow-[0_0_0_3px_rgba(245,158,11,0.18)]",
     bar: "bg-amber-500",
   },
-  inactive: {
+  [MACHINE_STATUS.CYOKOTEI_STOP]: {
     ring: "ring-rose-500/30 dark:ring-rose-400/30",
     glow: "from-rose-500/10",
     dot: "bg-rose-500 shadow-[0_0_0_3px_rgba(244,63,94,0.18)]",
     bar: "bg-rose-500",
   },
+  [MACHINE_STATUS.OFF]: {
+    ring: "ring-slate-500/30 dark:ring-slate-400/30",
+    glow: "from-slate-500/10",
+    dot: "bg-slate-500 shadow-[0_0_0_3px_rgba(100,116,139,0.18)]",
+    bar: "bg-slate-500",
+  },
 };
 
 export function MachineCard({ machine }: { machine: Machine }) {
-  const isRunning = machine.status === "active";
+  const isRunning = machine.status === MACHINE_STATUS.RUNNING;
   const [seconds, setSeconds] = useState(machine.elapsedSeconds);
   const accent = statusAccent[machine.status];
 

@@ -1,9 +1,9 @@
-export type MachineStatus = "active" | "idle" | "inactive";
+import { MACHINE_STATUS } from "@/lib/status";
 
 export interface Machine {
   id: string;
   name: string;
-  status: MachineStatus;
+  status: MACHINE_STATUS;
   currentProduct: string;
   operators: string[];
   elapsedSeconds: number;
@@ -14,7 +14,7 @@ export const machines: Machine[] = [
   {
     id: "M001",
     name: "Machine A",
-    status: "active",
+    status: MACHINE_STATUS.RUNNING,
     currentProduct: "Bracket Type-X",
     operators: ["Budi Santoso", "Siti Rahma"],
     elapsedSeconds: 3600,
@@ -23,7 +23,7 @@ export const machines: Machine[] = [
   {
     id: "M002",
     name: "Machine B",
-    status: "active",
+    status: MACHINE_STATUS.RUNNING,
     currentProduct: "Plate Y-200",
     operators: ["Siti Rahma", "Andi Wijaya", "Dewi Lestari"],
     elapsedSeconds: 1820,
@@ -32,7 +32,7 @@ export const machines: Machine[] = [
   {
     id: "M003",
     name: "Machine C",
-    status: "idle",
+    status: MACHINE_STATUS.SETUP,
     currentProduct: "Shaft Z-12",
     operators: ["Andi Wijaya", "Rizky Pratama"],
     elapsedSeconds: 540,
@@ -41,7 +41,7 @@ export const machines: Machine[] = [
   {
     id: "M004",
     name: "Machine D",
-    status: "inactive",
+    status: MACHINE_STATUS.OFF,
     currentProduct: "-",
     operators: ["Lina Marlina", "Tono Setiawan"],
     elapsedSeconds: 0,
@@ -50,7 +50,7 @@ export const machines: Machine[] = [
   {
     id: "M005",
     name: "Machine E",
-    status: "active",
+    status: MACHINE_STATUS.RUNNING,
     currentProduct: "Gear G-08",
     operators: ["Dewi Lestari", "Maya Putri", "Budi Santoso"],
     elapsedSeconds: 7320,
@@ -59,7 +59,7 @@ export const machines: Machine[] = [
   {
     id: "M006",
     name: "Machine F",
-    status: "idle",
+    status: MACHINE_STATUS.CYOKOTEI_STOP,
     currentProduct: "Housing H-04",
     operators: ["Rizky Pratama", "Lina Marlina"],
     elapsedSeconds: 240,
@@ -68,7 +68,7 @@ export const machines: Machine[] = [
   {
     id: "M007",
     name: "Machine G",
-    status: "active",
+    status: MACHINE_STATUS.RUNNING,
     currentProduct: "Cover C-15",
     operators: ["Lina Marlina", "Tono Setiawan"],
     elapsedSeconds: 980,
@@ -77,7 +77,7 @@ export const machines: Machine[] = [
   {
     id: "M008",
     name: "Machine H",
-    status: "inactive",
+    status: MACHINE_STATUS.OFF,
     currentProduct: "-",
     operators: ["Tono Setiawan", "Maya Putri"],
     elapsedSeconds: 0,
@@ -86,7 +86,7 @@ export const machines: Machine[] = [
   {
     id: "M009",
     name: "Machine I",
-    status: "active",
+    status: MACHINE_STATUS.RUNNING,
     currentProduct: "Frame F-22",
     operators: ["Tono Setiawan", "Andi Wijaya", "Maya Putri"],
     elapsedSeconds: 4200,
@@ -95,7 +95,7 @@ export const machines: Machine[] = [
   {
     id: "M010",
     name: "Machine J",
-    status: "idle",
+    status: MACHINE_STATUS.CYOKOTEI_STOP,
     currentProduct: "Hinge HN-3",
     operators: ["Maya Putri", "Budi Santoso"],
     elapsedSeconds: 120,
@@ -104,7 +104,7 @@ export const machines: Machine[] = [
 ];
 
 export interface GanttSegment {
-  status: MachineStatus;
+  status: MACHINE_STATUS;
   start: number; // hours from beginning of period (0-based)
   duration: number; // hours
 }
@@ -119,14 +119,14 @@ function buildSegments(totalHours: number, seed: number): GanttSegment[] {
   const segments: GanttSegment[] = [];
   let cursor = 0;
   let i = 0;
-  const statuses: MachineStatus[] = [
-    "active",
-    "active",
-    "idle",
-    "active",
-    "inactive",
-    "active",
-    "idle",
+  const statuses: MACHINE_STATUS[] = [
+    MACHINE_STATUS.RUNNING,
+    MACHINE_STATUS.RUNNING,
+    MACHINE_STATUS.SETUP,
+    MACHINE_STATUS.RUNNING,
+    MACHINE_STATUS.OFF,
+    MACHINE_STATUS.RUNNING,
+    MACHINE_STATUS.CYOKOTEI_STOP,
   ];
   while (cursor < totalHours) {
     const remaining = totalHours - cursor;
@@ -187,14 +187,15 @@ export function getMachineSegments(
 export function getDailyHoursByStatus(
   machineId: string,
   period: ActivityPeriod,
-): Record<MachineStatus, number[]> {
+): Record<MACHINE_STATUS, number[]> {
   const totalHours = activityPeriodHours[period];
   const segments = getMachineSegments(machineId, period);
   const days = Math.ceil(totalHours / 24);
-  const result: Record<MachineStatus, number[]> = {
-    active: new Array(days).fill(0) as number[],
-    idle: new Array(days).fill(0) as number[],
-    inactive: new Array(days).fill(0) as number[],
+  const result: Record<MACHINE_STATUS, number[]> = {
+    [MACHINE_STATUS.OFF]: new Array(days).fill(0) as number[],
+    [MACHINE_STATUS.RUNNING]: new Array(days).fill(0) as number[],
+    [MACHINE_STATUS.CYOKOTEI_STOP]: new Array(days).fill(0) as number[],
+    [MACHINE_STATUS.SETUP]: new Array(days).fill(0) as number[],
   };
   for (const seg of segments) {
     let s = seg.start;
@@ -214,7 +215,7 @@ export function getDailyActiveHours(
   machineId: string,
   period: ActivityPeriod,
 ): number[] {
-  return getDailyHoursByStatus(machineId, period).active;
+  return getDailyHoursByStatus(machineId, period)[MACHINE_STATUS.RUNNING];
 }
 
 export type UserStatus = "pending" | "approved" | "rejected";

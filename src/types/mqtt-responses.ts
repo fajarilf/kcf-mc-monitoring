@@ -1,4 +1,4 @@
-import { MachineStatus } from "@/lib/mock-data"
+import { MACHINE_STATUS } from "@/lib/status"
 
 export interface MqttResponses {
     Machine: {
@@ -6,7 +6,7 @@ export interface MqttResponses {
         OPERATORNAME: string,
         WORKNAME: string,
         PRODUCTCOUNTER: number,
-        STATUS: MachineStatus,
+        STATUS: MACHINE_STATUS,
         TIMECOUNTER: number,
     }
     timestamp: Date
