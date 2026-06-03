@@ -1,10 +1,13 @@
+import { MACHINE_STATUS } from "@/lib/status";
 import { ApiResponses } from "../types/api-responses";
 
 export type MachineResponse = ApiResponses<MachineData>;
+export type MachineListResponse = ApiResponses<MachineData[]>;
 
 export interface MachineData {
-    machine_id: number,
-    machine_name: string,
+    id: number,
+    name: string,
+    status: MACHINE_STATUS,
+    elapsedSeconds: number,
     created_at: Date,
-    updated_at: Date
 }

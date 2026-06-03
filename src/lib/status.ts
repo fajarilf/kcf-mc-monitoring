@@ -38,6 +38,8 @@ export function withAlpha(hex: string, alpha: number): string {
 }
 
 export function formatHMS(totalSeconds: number): string {
+  if (!totalSeconds) return "--:--:--";
+
   const s = Math.max(0, Math.floor(totalSeconds));
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);

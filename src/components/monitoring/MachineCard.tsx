@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { Machine } from "@/lib/mock-data";
 import {
@@ -17,6 +18,7 @@ import {
   statusColorClass,
   statusLabel,
 } from "@/lib/status";
+import { MachineData } from "@/model/machine-model";
 
 const statusAccent: Record<
   MACHINE_STATUS,
@@ -48,10 +50,10 @@ const statusAccent: Record<
   },
 };
 
-export function MachineCard({ machine }: { machine: Machine }) {
+export function MachineCard({ machine }: { machine: MachineData }) {
   const isRunning = machine.status === MACHINE_STATUS.RUNNING;
   const [seconds, setSeconds] = useState(machine.elapsedSeconds);
-  const accent = statusAccent[machine.status];
+  const accent = statusAccent[machine.status] || statusAccent[MACHINE_STATUS.OFF];
 
   useEffect(() => {
     // if (!isRunning) return;
@@ -95,7 +97,7 @@ export function MachineCard({ machine }: { machine: Machine }) {
           variant="outline"
           className={cn("border", statusColorClass[machine.status])}
         >
-          {statusLabel[machine.status]}
+          {statusLabel[machine.status] || statusLabel[MACHINE_STATUS.OFF]}
         </Badge>
       </CardHeader>
       <CardContent className="relative flex flex-1 flex-col gap-4 pl-5">
@@ -104,7 +106,7 @@ export function MachineCard({ machine }: { machine: Machine }) {
             <Package className="size-4 shrink-0" />
             <span className="truncate">
               <span className="text-foreground">
-                {machine.currentProduct || "-"}
+                {"-"}
               </span>
             </span>
           </div>
@@ -112,7 +114,7 @@ export function MachineCard({ machine }: { machine: Machine }) {
             <User className="size-4 shrink-0" />
             <span className="truncate">
               <span className="text-foreground">
-                {machine.operators[0]}
+                {"-"}
               </span>
             </span>
           </div>
@@ -135,8 +137,60 @@ export function MachineCard({ machine }: { machine: Machine }) {
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Products</span>
           <span className="font-semibold tabular-nums">
-            {machine.productCount}
+            {"-"}
           </span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function MachineCardSkeleton() {
+  return (
+    <Card
+      className={cn(
+        "relative flex h-full flex-col overflow-hidden ring-1",
+        "ring-slate-500/20 dark:ring-slate-400/20",
+      )}
+    >
+      <span
+        aria-hidden
+        className="absolute inset-y-0 left-0 w-1.5 bg-muted"
+      />
+      <CardHeader className="relative flex flex-row items-start justify-between gap-2 pl-5">
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-2">
+            <Skeleton className="size-2 rounded-full" />
+            <Skeleton className="h-4 w-28" />
+          </div>
+          <Skeleton className="h-3 w-16" />
+        </div>
+        <Skeleton className="h-6 w-20 rounded-full" />
+      </CardHeader>
+      <CardContent className="relative flex flex-1 flex-col gap-4 pl-5">
+        <div className="flex gap-2 text-sm">
+          <div className="flex items-center gap-2">
+            <Package className="size-4 shrink-0 text-muted-foreground/50" />
+            <Skeleton className="h-3.5 w-20" />
+          </div>
+          <div className="flex items-center gap-2">
+            <User className="size-4 shrink-0 text-muted-foreground/50" />
+            <Skeleton className="h-3.5 w-16" />
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-border/50 bg-muted/40 p-3 text-center backdrop-blur-sm">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">
+            Run Time
+          </div>
+          <div className="mt-1 flex justify-center">
+            <Skeleton className="h-7 w-32" />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">Products</span>
+          <Skeleton className="h-4 w-8" />
         </div>
       </CardContent>
     </Card>
