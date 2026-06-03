@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Activity, PowerOff, Wrench, XCircle } from "lucide-react";
 import {
   Card,
@@ -16,6 +16,8 @@ import { MACHINE_STATUS } from "@/lib/status";
 import { useNowTicker } from "@/hooks/use-mounted-now";
 import { useStatusTimelineHook } from "@/hooks/use-status-timeline-hook";
 import type { MachineTimeline } from "@/model/status-timeline-model";
+import { useMqttJson } from "@/hooks/use-mqtt";
+import type { MqttResponses } from "@/types/mqtt-responses";
 
 const TICKS = 6;
 const MS_PER_HOUR = 1000 * 60 * 60;
@@ -68,10 +70,32 @@ function toGanttRows(data: MachineTimeline[], nowMs: number): GanttRow[] {
 
 export default function DashboardPage() {
   const now = useNowTicker(1000);
-  const { data, isLoading, isError, error } = useStatusTimelineHook();
+  const { data, isLoading, isError, error, refetch } = useStatusTimelineHook({
+    // startDate: new Date().toISOString().split('T')[0],
+  });
+
+  // Seed last-seen status from the timeline so the first MQTT tick that
+  // simply echoes the current state does not trigger a redundant refetch.
+  const lastStatusRef = useRef<Map<string, MACHINE_STATUS>>(new Map());
+  useEffect(() => {
+    if (!data?.data) return;
+    for (const m of data.data) {
+      const last = m.timeline[m.timeline.length - 1];
+      if (last) lastStatusRef.current.set(String(m.machineId), last.status);
+    }
+  }, [data]);
+
+  useMqttJson<MqttResponses>("machines/+", (payload, message) => {
+    const id = message.topic.split("/")[1];
+    if (!id) return;
+    const incoming = payload.Machine.STATUS;
+    const prev = lastStatusRef.current.get(id);
+    lastStatusRef.current.set(id, incoming);
+    if (prev !== undefined && prev !== incoming) refetch();
+  });
 
   const counts = useMemo(() => {
-    const by = (status: MACHINE_STATUS) =>
+    const by = (status: MACHINE_STATUS): number =>
       machines.filter((m) => m.status === status).length;
     return {
       running: by(MACHINE_STATUS.RUNNING),
@@ -81,7 +105,7 @@ export default function DashboardPage() {
     };
   }, []);
 
-  const hourOfDay = useMemo(() => {
+  const hourOfDay = useMemo((): number => {
     if (now === null) return 24;
     const d = new Date(now);
     return d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
