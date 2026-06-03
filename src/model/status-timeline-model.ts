@@ -18,10 +18,10 @@ export type MachineTimeline = {
 
 /** Optional filters for the status timeline request — adjust to match the API. */
 export interface StatusTimelineParams extends RequestParam {
-    machineId: number,
-    starDate: Date,
-    endDate: Date,
-    userId: number
+    machineId?: number,
+    startDate?: string,
+    endDate?: string,
+    userId?: number
 }
 
 export type StatusTimelineResponse = ApiResponses<MachineTimeline[]>;

@@ -9,7 +9,7 @@ class StatusTimelineService {
 
     async get(params?: StatusTimelineParams): Promise<StatusTimelineResponse> {
         const res = await api.get(this.base_url, { params });
-        return res.data;
+        return res.data as StatusTimelineResponse;
     }
 }
 
