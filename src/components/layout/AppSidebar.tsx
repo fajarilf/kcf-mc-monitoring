@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -11,7 +12,6 @@ import {
   QrCode,
   LogOut,
   LogIn,
-  Activity,
 } from "lucide-react";
 import {
   Sidebar,
@@ -63,9 +63,14 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-1.5">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Activity className="size-4" />
-          </div>
+          <Image
+            src="/kcf-logo.png"
+            alt="KCF logo"
+            width={32}
+            height={32}
+            className="size-8 shrink-0 rounded-md object-contain"
+            priority
+          />
           {!collapsed && (
             <div className="flex flex-col leading-tight">
               <span className="text-sm font-semibold">KCF M/C Monitoring</span>

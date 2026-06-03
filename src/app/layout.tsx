@@ -21,6 +21,11 @@ const mono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "KCF M/C Monitoring",
   description: "Monitor and display machine activities in real time.",
+  icons: {
+    icon: "/kcf-logo.png",
+    shortcut: "/kcf-logo.png",
+    apple: "/kcf-logo.png",
+  },
 };
 
 export default function RootLayout({
