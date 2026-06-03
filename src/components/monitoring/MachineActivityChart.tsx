@@ -17,7 +17,6 @@ import { Line } from "react-chartjs-2";
 import { useTheme } from "next-themes";
 import {
   activityPeriodHours,
-  getDailyHoursByStatus,
   type ActivityPeriod,
 } from "@/lib/mock-data";
 import {
@@ -27,6 +26,8 @@ import {
   withAlpha,
 } from "@/lib/status";
 import { useMountedNow } from "@/hooks/use-mounted-now";
+import { useStatusActivityHook } from "@/hooks/use-status-hook";
+import { MachineActivity } from "@/model/status-model";
 
 ChartJS.register(
   CategoryScale,
@@ -50,11 +51,82 @@ const STATUSES: MACHINE_STATUS[] = [
   MACHINE_STATUS.SETUP,
 ];
 
+function generateDateRange(period: ActivityPeriod): Date[] {
+  if (period === "lastMonth")
+    return Array.from({ length: 30 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (29 - i));
+      return d;
+    });
+
+  if (period === "lastWeek")
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      return d;
+    });
+    
+  if (period === "lastThreeDays")
+    return Array.from({ length: 3 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (2 - i));
+      return d;
+    });
+
+  return [];
+}
+
+function getTotalHoursByStatus(activityData: MachineActivity[], period: ActivityPeriod): Record<MACHINE_STATUS, number[]> {
+  const result: Record<MACHINE_STATUS, number[]> = {
+    [MACHINE_STATUS.OFF]: [],
+    [MACHINE_STATUS.RUNNING]: [],
+    [MACHINE_STATUS.CYOKOTEI_STOP]: [],
+    [MACHINE_STATUS.SETUP]: [],
+  };
+
+  const dateRange = generateDateRange(period);
+
+  for (const date of dateRange) {
+    const dayData = activityData.find(
+      (d) => new Date(d.date).toLocaleDateString() === date.toLocaleDateString(),
+    );
+
+    const dailyTotals: Record<MACHINE_STATUS, number> = {
+      [MACHINE_STATUS.OFF]: 0,
+      [MACHINE_STATUS.RUNNING]: 0,
+      [MACHINE_STATUS.CYOKOTEI_STOP]: 0,
+      [MACHINE_STATUS.SETUP]: 0,
+    };
+
+    if (dayData) {
+      for (const detail of dayData.details) {
+        dailyTotals[detail.code] += detail.totalTime / 3600;
+      }
+    }
+
+    for (const status of STATUSES) {
+      result[status].push(dailyTotals[status]);
+    }
+  }
+
+  return result;
+}
+
 export function MachineActivityChart({ machineId, period }: Props) {
   const { resolvedTheme } = useTheme();
   const now = useMountedNow();
   const mounted = now !== null;
   const isDark = mounted && resolvedTheme === "dark";
+
+  const dateRange = useMemo<Date[]>(() => {
+    return generateDateRange(period);
+  }, [period]);
+
+  const { data: activityData } = useStatusActivityHook({
+    machineId: parseInt(machineId),
+    startDate: dateRange[0]?.toISOString(),
+    endDate: dateRange[dateRange.length - 1]?.toISOString(),
+  });
 
   const tickColor = isDark ? "rgb(203, 213, 225)" : "rgb(71, 85, 105)";
   const gridColor = isDark
@@ -67,7 +139,7 @@ export function MachineActivityChart({ machineId, period }: Props) {
   const legendColor = isDark ? "rgb(226, 232, 240)" : "rgb(30, 41, 59)";
 
   const data = useMemo(() => {
-    const hoursByStatus = getDailyHoursByStatus(machineId, period);
+    const hoursByStatus = getTotalHoursByStatus(activityData?.data || [], period);
     const totalHours = activityPeriodHours[period];
     const days = Math.ceil(totalHours / 24);
     const anchor = now ?? 0;
@@ -100,7 +172,7 @@ export function MachineActivityChart({ machineId, period }: Props) {
     });
 
     return { labels, datasets } as ChartData<"line">;
-  }, [machineId, period, now]);
+  }, [period, now, activityData?.data]);
 
   const options: ChartOptions<"line"> = {
     responsive: true,

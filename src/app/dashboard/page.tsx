@@ -5,7 +5,6 @@ import { Activity, PowerOff, Wrench, XCircle } from "lucide-react";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -14,8 +13,8 @@ import { GanttBarChart } from "@/components/dashboard/GanttBarChart";
 import { type GanttRow } from "@/lib/mock-data";
 import { MACHINE_STATUS } from "@/lib/status";
 import { useNowTicker } from "@/hooks/use-mounted-now";
-import { useStatusTimelineHook } from "@/hooks/use-status-timeline-hook";
-import type { MachineTimeline } from "@/model/status-timeline-model";
+import { useStatusTimelineHook } from "@/hooks/use-status-hook";
+import type { MachineTimeline } from "@/model/status-model";
 import { useMqttJson } from "@/hooks/use-mqtt";
 import type { MqttResponses } from "@/types/mqtt-responses";
 
@@ -141,12 +140,6 @@ export default function DashboardPage() {
       off: by(MACHINE_STATUS.OFF),
     };
   }, [machines]);
-
-  const hourOfDay = useMemo((): number => {
-    if (now === null) return 24;
-    const d = new Date(now);
-    return d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
-  }, [now]);
 
   const shift = useMemo(
     () => (now === null ? null : getShiftWindow(now)),

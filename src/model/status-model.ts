@@ -16,12 +16,32 @@ export type MachineTimeline = {
     timeline: TimelineSegment[],
 };
 
-/** Optional filters for the status timeline request — adjust to match the API. */
-export interface StatusTimelineParams extends RequestParam {
+type StatusParams = {
     machineId?: number,
     startDate?: string,
     endDate?: string,
     userId?: number
 }
 
+type StatusActivityDetail = {
+    operator: string,
+    product: string,
+    code: MACHINE_STATUS,
+    totalTime: number,
+}
+
+export type MachineActivity = {
+    date: Date,
+    details: StatusActivityDetail[],
+}
+
+/** Optional filters for the status timeline request*/
+export interface StatusTimelineParams extends RequestParam, StatusParams {}
+
+export interface StatusActivityParams extends RequestParam, StatusParams {
+    productId?: string,
+    code?: number,
+}
+
 export type StatusTimelineResponse = ApiResponses<MachineTimeline[]>;
+export type StatusActivityResponse = ApiResponses<MachineActivity[]>;

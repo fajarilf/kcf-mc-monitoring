@@ -76,18 +76,18 @@ export default function MachineDetailPage() {
   }, [data])
 
   useMqttJson<MqttResponses>(`machine${machine?.id}`, (data) => {
-      if (data?.Machine) {
-        const { OPERATORNAME, WORKNAME, PRODUCTCOUNTER, TIMECOUNTER, STATUS } = data.Machine;
-        setMachineInfo({
-          operator: OPERATORNAME,
-          product: WORKNAME,
-          counter_product: PRODUCTCOUNTER,
-          timer_elapsed: TIMECOUNTER,
-          status: STATUS,
-        });
-        setSeconds(TIMECOUNTER);
-      }
-    })
+    if (data?.Machine) {
+      const { OPERATORNAME, WORKNAME, PRODUCTCOUNTER, TIMECOUNTER, STATUS } = data.Machine;
+      setMachineInfo({
+        operator: OPERATORNAME,
+        product: WORKNAME,
+        counter_product: PRODUCTCOUNTER,
+        timer_elapsed: TIMECOUNTER,
+        status: STATUS,
+      });
+      setSeconds(TIMECOUNTER);
+    }
+  })
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
