@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Package, User } from "lucide-react";
 import {
   Card,
@@ -9,16 +9,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import type { Machine } from "@/lib/mock-data";
 import {
   formatHMS,
   MACHINE_STATUS,
   statusColorClass,
   statusLabel,
 } from "@/lib/status";
-import { MachineData } from "@/model/machine-model";
+import { MachineData, MachineInformation } from "@/model/machine-model";
+import { useMqttJson } from "@/hooks/use-mqtt";
+import { MqttResponses } from "@/types/mqtt-responses";
 
 const statusAccent: Record<
   MACHINE_STATUS,
@@ -51,15 +51,24 @@ const statusAccent: Record<
 };
 
 export function MachineCard({ machine }: { machine: MachineData }) {
-  const isRunning = machine.status === MACHINE_STATUS.RUNNING;
-  const [seconds, setSeconds] = useState(machine.elapsedSeconds);
-  const accent = statusAccent[machine.status] || statusAccent[MACHINE_STATUS.OFF];
+  const [seconds, setSeconds] = useState<number>(0);
+  const [cardDetail, setCardDetail] = useState<MachineInformation>();
+  const [accent, setAccent] = useState(statusAccent[MACHINE_STATUS.OFF]);
 
-  useEffect(() => {
-    // if (!isRunning) return;
-    const id = setInterval(() => setSeconds((s) => s + 1), 1000);
-    return () => clearInterval(id);
-  }, [isRunning]);
+  useMqttJson<MqttResponses>(`machine${machine.id}`, (data) => {
+    if (data?.Machine) {
+      const { OPERATORNAME, WORKNAME, PRODUCTCOUNTER, TIMECOUNTER, STATUS } = data.Machine;
+      setCardDetail({
+        operator: OPERATORNAME,
+        product: WORKNAME,
+        counter_product: PRODUCTCOUNTER,
+        timer_elapsed: TIMECOUNTER,
+        status: STATUS,
+      });
+      setSeconds(TIMECOUNTER);
+      setAccent(statusAccent[STATUS]);
+    }
+  })
 
   return (
     <Card
@@ -95,9 +104,9 @@ export function MachineCard({ machine }: { machine: MachineData }) {
         </div>
         <Badge
           variant="outline"
-          className={cn("border", statusColorClass[machine.status])}
+          className={cn("border", statusColorClass[cardDetail?.status ?? MACHINE_STATUS.OFF])}
         >
-          {statusLabel[machine.status] || statusLabel[MACHINE_STATUS.OFF]}
+          {statusLabel[cardDetail?.status ?? MACHINE_STATUS.OFF]}
         </Badge>
       </CardHeader>
       <CardContent className="relative flex flex-1 flex-col gap-4 pl-5">
@@ -106,7 +115,7 @@ export function MachineCard({ machine }: { machine: MachineData }) {
             <Package className="size-4 shrink-0" />
             <span className="truncate">
               <span className="text-foreground">
-                {"-"}
+                {cardDetail?.product || "-"}
               </span>
             </span>
           </div>
@@ -114,7 +123,7 @@ export function MachineCard({ machine }: { machine: MachineData }) {
             <User className="size-4 shrink-0" />
             <span className="truncate">
               <span className="text-foreground">
-                {"-"}
+                {cardDetail?.operator || "-"}
               </span>
             </span>
           </div>
@@ -137,60 +146,8 @@ export function MachineCard({ machine }: { machine: MachineData }) {
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Products</span>
           <span className="font-semibold tabular-nums">
-            {"-"}
+            {cardDetail?.counter_product || "-"}
           </span>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-export function MachineCardSkeleton() {
-  return (
-    <Card
-      className={cn(
-        "relative flex h-full flex-col overflow-hidden ring-1",
-        "ring-slate-500/20 dark:ring-slate-400/20",
-      )}
-    >
-      <span
-        aria-hidden
-        className="absolute inset-y-0 left-0 w-1.5 bg-muted"
-      />
-      <CardHeader className="relative flex flex-row items-start justify-between gap-2 pl-5">
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-2">
-            <Skeleton className="size-2 rounded-full" />
-            <Skeleton className="h-4 w-28" />
-          </div>
-          <Skeleton className="h-3 w-16" />
-        </div>
-        <Skeleton className="h-6 w-20 rounded-full" />
-      </CardHeader>
-      <CardContent className="relative flex flex-1 flex-col gap-4 pl-5">
-        <div className="flex gap-2 text-sm">
-          <div className="flex items-center gap-2">
-            <Package className="size-4 shrink-0 text-muted-foreground/50" />
-            <Skeleton className="h-3.5 w-20" />
-          </div>
-          <div className="flex items-center gap-2">
-            <User className="size-4 shrink-0 text-muted-foreground/50" />
-            <Skeleton className="h-3.5 w-16" />
-          </div>
-        </div>
-
-        <div className="rounded-lg border border-border/50 bg-muted/40 p-3 text-center backdrop-blur-sm">
-          <div className="text-xs uppercase tracking-wide text-muted-foreground">
-            Run Time
-          </div>
-          <div className="mt-1 flex justify-center">
-            <Skeleton className="h-7 w-32" />
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Products</span>
-          <Skeleton className="h-4 w-8" />
         </div>
       </CardContent>
     </Card>

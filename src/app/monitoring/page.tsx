@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { MachineCard, MachineCardSkeleton } from "@/components/monitoring/MachineCard";
+import { MachineCard } from "@/components/monitoring/MachineCard";
 import { useMachineHook } from "@/hooks/use-machine";
+import { MachineCardSkeleton } from "@/components/monitoring/Skeleton";
 
 export default function MonitoringPage() {
   const { data, isLoading, isError, error, } = useMachineHook()

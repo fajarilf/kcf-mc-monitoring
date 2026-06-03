@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Hash, Package, User as UserIcon } from "lucide-react";
@@ -24,7 +24,6 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import {
   activityPeriodLabel,
-  machines,
   type ActivityPeriod,
 } from "@/lib/mock-data";
 import {
@@ -35,6 +34,11 @@ import {
 } from "@/lib/status";
 import { MachineActivityChart } from "@/components/monitoring/MachineActivityChart";
 import { MachineActivityTable } from "@/components/monitoring/MachineActivityTable";
+import { useMachineByIdHook, useMachineHook } from "@/hooks/use-machine";
+import { MachineData, MachineInformation } from "@/model/machine-model";
+import { useMqttJson } from "@/hooks/use-mqtt";
+import { MqttResponses } from "@/types/mqtt-responses";
+import { MachineDetailSkeleton } from "@/components/monitoring/Skeleton";
 
 const PERIODS: ActivityPeriod[] = ["lastThreeDays", "lastWeek", "lastMonth"];
 
@@ -59,18 +63,36 @@ export default function MachineDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const machineId = params.id;
-  const machine = useMemo(
-    () => machines.find((m) => m.id === machineId),
-    [machineId],
-  );
-
+  const { data, isLoading, isError } = useMachineByIdHook(Number(machineId));
+  const { data: machineList } = useMachineHook();
+  const [machine, setMachine] = useState<MachineData>();
+  const [machineInfo, setMachineInfo] = useState<MachineInformation>();
   const [period, setPeriod] = useState<ActivityPeriod>("lastWeek");
-  const [seconds, setSeconds] = useState(machine?.elapsedSeconds ?? 0);
+  const [seconds, setSeconds] = useState(0);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSeconds(machine?.elapsedSeconds ?? 0);
-  }, [machine?.id, machine?.elapsedSeconds]);
+    if (data?.data) setMachine(data.data);
+  }, [data])
+
+  useMqttJson<MqttResponses>(`machine${machine?.id}`, (data) => {
+      if (data?.Machine) {
+        const { OPERATORNAME, WORKNAME, PRODUCTCOUNTER, TIMECOUNTER, STATUS } = data.Machine;
+        setMachineInfo({
+          operator: OPERATORNAME,
+          product: WORKNAME,
+          counter_product: PRODUCTCOUNTER,
+          timer_elapsed: TIMECOUNTER,
+          status: STATUS,
+        });
+        setSeconds(TIMECOUNTER);
+      }
+    })
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSeconds(machineInfo?.timer_elapsed ?? 0);
+  }, [data?.data.id, machineInfo?.timer_elapsed]);
 
   // const isRunning = machine?.status === "active";
   useEffect(() => {
@@ -78,7 +100,18 @@ export default function MachineDetailPage() {
     return () => clearInterval(id);
   }, []);
 
-  if (!machine) {
+  function findMachineAndRedirect(name: string) {
+  const selected = machineList?.data.find((m) => m.name === name);
+    if (selected) {
+      router.push(`/monitoring/${selected.id}`);
+    }
+  }
+
+  if (isLoading) {
+    return <MachineDetailSkeleton />;
+  }
+
+  if (!data?.data || isError) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
         <p className="text-lg font-medium">Machine not found</p>
@@ -114,16 +147,15 @@ export default function MachineDetailPage() {
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Machine</span>
           <Select
-            value={machine.id}
-            onValueChange={(id) => router.push(`/monitoring/${id}`)}
+            onValueChange={(value) => findMachineAndRedirect(String(value))}
           >
             <SelectTrigger className="w-40 rounded-sm">
-              <SelectValue />
+              <SelectValue placeholder="Select machine" />
             </SelectTrigger>
             <SelectContent className="rounded-sm h-40" alignItemWithTrigger={false}>
-              {machines.map((m) => (
-                <SelectItem key={m.id} value={m.id}>
-                  {m.name} · {m.id}
+              {machineList?.data.map((m) => (
+                <SelectItem key={m.id} value={m.name}>
+                  {m.name}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -136,7 +168,7 @@ export default function MachineDetailPage() {
           aria-hidden
           className={cn(
             "absolute inset-y-0 left-0 w-1.5",
-            accentBar[machine.status],
+            accentBar[machineInfo?.status || MACHINE_STATUS.OFF],
           )}
         />
         <CardHeader className="pl-6">
@@ -146,21 +178,21 @@ export default function MachineDetailPage() {
                 <span
                   className={cn(
                     "inline-block size-2.5 rounded-full animate-pulse",
-                    accentDot[machine.status],
+                    accentDot[machineInfo?.status || MACHINE_STATUS.OFF],
                     // isRunning && "animate-pulse",
                   )}
                 />
-                <CardTitle className="text-2xl">{machine.name}</CardTitle>
+                <CardTitle className="text-2xl">{machine?.name}</CardTitle>
               </div>
               <CardDescription className="font-mono">
-                {machine.id}
+                {machine?.id}
               </CardDescription>
             </div>
             <Badge
               variant="outline"
-              className={cn("border", statusColorClass[machine.status])}
+              className={cn("border", statusColorClass[machineInfo?.status || MACHINE_STATUS.OFF])}
             >
-              {statusLabel[machine.status]}
+              {statusLabel[machineInfo?.status || MACHINE_STATUS.OFF]}
             </Badge>
           </div>
         </CardHeader>
@@ -168,17 +200,17 @@ export default function MachineDetailPage() {
           <Metric
             icon={<Package className="size-4" />}
             label="Current Product"
-            value={machine.currentProduct || "-"}
+            value={machineInfo?.product || "-"}
           />
           <Metric
             icon={<UserIcon className="size-4" />}
             label="Operator"
-            value={machine.operators[0]}
+            value={machineInfo?.operator || "-"}
           />
           <Metric
             icon={<Hash className="size-4" />}
             label="Products"
-            value={machine.productCount.toLocaleString()}
+            value={machineInfo?.counter_product.toLocaleString() || "-"}
             mono
           />
           <div className="rounded-lg border border-border/50 bg-muted/40 p-3">
@@ -221,7 +253,7 @@ export default function MachineDetailPage() {
           </Select>
         </CardHeader>
         <CardContent>
-          <MachineActivityChart machineId={machine.id} period={period} />
+          <MachineActivityChart machineId={machine?.id.toString() || "0"} period={period} />
         </CardContent>
       </Card>
 
@@ -234,7 +266,7 @@ export default function MachineDetailPage() {
           <Separator className="mt-2" />
         </CardHeader>
         <CardContent>
-          <MachineActivityTable machineId={machine.id} period={period} />
+          <MachineActivityTable machineId={machine?.id.toString() || "0"} period={period} />
         </CardContent>
       </Card>
     </div>
