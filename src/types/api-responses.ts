@@ -10,4 +10,6 @@ export interface Pagination {
     limit: number,
     totalPages: number,
     total: number,
+    hasPreviousPage?: boolean,
+    hasNextPage?: boolean,
 }
