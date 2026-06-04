@@ -44,4 +44,5 @@ export interface StatusActivityParams extends RequestParam, StatusParams {
 }
 
 export type StatusTimelineResponse = ApiResponses<MachineTimeline[]>;
+export type StatusTimelineByIdResponse = ApiResponses<MachineTimeline>;
 export type StatusActivityResponse = ApiResponses<MachineActivity[]>;

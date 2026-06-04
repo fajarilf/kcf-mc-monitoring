@@ -2,6 +2,7 @@ import api from "@/lib/api";
 import {
     StatusActivityParams,
     StatusActivityResponse,
+    StatusTimelineByIdResponse,
     StatusTimelineParams,
     StatusTimelineResponse,
 } from "@/model/status-model";
@@ -17,6 +18,11 @@ class StatusTimelineService {
     async getActivity(params?: StatusActivityParams): Promise<StatusActivityResponse> {
         const res = await api.get(`${this.base_url}/activity`, { params });
         return res.data as StatusActivityResponse;
+    }
+
+    async getTimelineById(id: number, params?: StatusTimelineParams): Promise<StatusTimelineByIdResponse> {
+        const res = await api.get(`${this.base_url}/timeline/${id}`, { params });
+        return res.data as StatusTimelineByIdResponse;
     }
 }
 

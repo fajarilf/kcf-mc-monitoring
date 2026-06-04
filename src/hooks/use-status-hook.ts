@@ -1,6 +1,7 @@
 import {
     StatusActivityParams,
     StatusActivityResponse,
+    StatusTimelineByIdResponse,
     StatusTimelineParams,
     StatusTimelineResponse,
 } from "@/model/status-model";
@@ -26,4 +27,15 @@ export function useStatusActivityHook(params?: StatusActivityParams) {
         refetchOnWindowFocus: true,
         placeholderData: keepPreviousData,
     })
+}
+
+export function useStatusTimelineByIdHook(id: number, params?: StatusTimelineParams) {
+    return useQuery<StatusTimelineByIdResponse, AxiosError<string>>({
+        queryKey: ["get-status-timeline-by-id", id, params],
+        queryFn: () => statusTimelineService.getTimelineById(id, params),
+        staleTime: 1000 * 10,
+        refetchOnWindowFocus: true,
+        placeholderData: keepPreviousData,
+        enabled: Number.isFinite(id) && id > 0,
+    });
 }

@@ -13,11 +13,11 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import {
-  activityPeriodHours,
-  getMachineSegments,
   type ActivityPeriod,
 } from "@/lib/mock-data";
 import { statusColorClass, statusLabel } from "@/lib/status";
+import { useStatusTimelineByIdHook } from "@/hooks/use-status-hook";
+import { helper } from "@/lib/helper";
 
 interface Props {
   machineId: string;
@@ -47,24 +47,30 @@ function formatDuration(hours: number): string {
 export function MachineActivityTable({ machineId, period }: Props) {
   const now = useMountedNow();
 
+  const dateRange = useMemo<Date[]>(() => {
+    return helper.generateDateRange(period);
+  }, [period]);
+
+  const { data } = useStatusTimelineByIdHook(parseInt(machineId), {
+    startDate: dateRange[0]?.toISOString().split("T")[0] ?? "",
+    endDate: dateRange[dateRange.length - 1]?.toISOString().split("T")[0] ?? "",
+  });
+
   const events = useMemo(() => {
-    if (now === null) return [];
-    const totalHours = activityPeriodHours[period];
-    const segments = getMachineSegments(machineId, period);
-    const anchor = now - totalHours * HOUR_MS;
-    return segments
-      .map((seg) => {
-        const start = new Date(anchor + seg.start * HOUR_MS);
-        const end = new Date(anchor + (seg.start + seg.duration) * HOUR_MS);
-        return {
-          start,
-          end,
-          duration: seg.duration,
-          status: seg.status,
-        };
-      })
-      .reverse();
-  }, [machineId, period, now]);
+    if (!data?.data || now === null) return [];
+    const dataMachine = data.data;
+    const segments = dataMachine.timeline.map((seg) => {
+      const start = new Date(seg.start);
+      const end = seg.end ? new Date(seg.end) : new Date();
+      return {
+        start,
+        end,
+        duration: (new Date(end).getTime() - new Date(start).getTime()) / HOUR_MS,
+        status: seg.status,
+      };
+    })
+    return segments.reverse();
+  }, [data?.data, now]);
 
   return (
     <div className="max-h-105 overflow-y-auto rounded-md border">
