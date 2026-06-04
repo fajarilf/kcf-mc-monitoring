@@ -105,7 +105,7 @@ export default function DashboardPage() {
 
   const { data: machineData, isLoading: machineLoading } = useMachineHook();
 
-  const isLoading = timelineLoading && machineLoading;
+  const isLoading = timelineLoading || machineLoading;
 
   const machines = useMemo<MachineStatusDetail[]>(() => {
     if (!timelineData?.data) return [];
@@ -128,7 +128,7 @@ export default function DashboardPage() {
 
   useMqttJson<MqttResponses>("+", (payload, message) => {
     const id = message.topic.match(/^machine(\d+)$/)?.[1];
-    if (!id) return;
+    if (!id || !payload.Machine) return;
     const incoming = payload.Machine.STATUS;
     const prev = lastStatusRef.current.get(id);
     lastStatusRef.current.set(id, incoming);
