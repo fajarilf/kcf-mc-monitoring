@@ -17,6 +17,7 @@ import { useStatusTimelineHook } from "@/hooks/use-status-hook";
 import type { MachineTimeline } from "@/model/status-model";
 import { useMqttJson } from "@/hooks/use-mqtt";
 import type { MqttResponses } from "@/types/mqtt-responses";
+import { useMachineHook } from "@/hooks/use-machine";
 
 const TICKS = 6;
 const MS_PER_HOUR = 1000 * 60 * 60;
@@ -98,28 +99,32 @@ type MachineStatusDetail = {
 
 export default function DashboardPage() {
   const now = useNowTicker(1000);
-  const { data, isLoading, isError, error, refetch } = useStatusTimelineHook({
+  const { data: timelineData, isLoading: timelineLoading, refetch } = useStatusTimelineHook({
     startDate: new Date().toISOString().split('T')[0],
   });
 
+  const { data: machineData, isLoading: machineLoading } = useMachineHook();
+
+  const isLoading = timelineLoading && machineLoading;
+
   const machines = useMemo<MachineStatusDetail[]>(() => {
-    if (!data?.data) return [];
-    return data.data.map((m) => ({
+    if (!timelineData?.data) return [];
+    return timelineData.data.map((m) => ({
       machine_id: m.machineId,
       status: m.timeline[m.timeline.length - 1]?.status ?? MACHINE_STATUS.OFF,
     }));
-  }, [data]);
+  }, [timelineData]);
 
   // Seed last-seen status from the timeline so the first MQTT tick that
   // simply echoes the current state does not trigger a redundant refetch.
   const lastStatusRef = useRef<Map<string, MACHINE_STATUS>>(new Map());
   useEffect(() => {
-    if (!data?.data) return;
-    for (const m of data.data) {
+    if (!timelineData?.data) return;
+    for (const m of timelineData.data) {
       const last = m.timeline[m.timeline.length - 1];
       if (last) lastStatusRef.current.set(String(m.machineId), last.status);
     }
-  }, [data]);
+  }, [timelineData]);
 
   useMqttJson<MqttResponses>("+", (payload, message) => {
     const id = message.topic.match(/^machine(\d+)$/)?.[1];
@@ -147,9 +152,18 @@ export default function DashboardPage() {
   );
 
   const rows = useMemo<GanttRow[]>(() => {
-    if (!data?.data || now === null || shift === null) return [];
-    return toGanttRows(data.data, now, shift.startMs);
-  }, [data, now, shift]);
+    if (now === null || shift === null) return [];
+    if (timelineData?.data && timelineData.data.length > 0) {
+      return toGanttRows(timelineData.data, now, shift.startMs);
+    }
+    // No timeline yet — still render the chart with machines on the y-axis and
+    // the time axis, just without any status segments.
+    return (machineData?.data ?? []).map((m) => ({
+      machineId: String(m.id),
+      machineName: m.name,
+      segments: [],
+    }));
+  }, [timelineData, machineData, now, shift]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -185,16 +199,6 @@ export default function DashboardPage() {
           {isLoading ? (
             <p className="py-12 text-center text-sm text-muted-foreground">
               Loading timeline…
-            </p>
-          ) : isError ? (
-            <p className="py-12 text-center text-sm text-destructive">
-              {error?.response?.data ??
-                error?.message ??
-                "Failed to load timeline."}
-            </p>
-          ) : rows.length === 0 ? (
-            <p className="py-12 text-center text-sm text-muted-foreground">
-              No timeline data available.
             </p>
           ) : (
             <GanttBarChart
