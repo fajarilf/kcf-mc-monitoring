@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Hash, Package, User as UserIcon } from "lucide-react";
@@ -63,19 +63,18 @@ export default function MachineDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const machineId = params.id;
-  const { data, isLoading, isError } = useMachineByIdHook(Number(machineId));
+  const { data: machineData, isLoading, isError } = useMachineByIdHook(Number(machineId));
   const { data: machineList } = useMachineHook();
-  const [machine, setMachine] = useState<MachineData>();
   const [machineInfo, setMachineInfo] = useState<MachineInformation>();
   const [period, setPeriod] = useState<ActivityPeriod>("lastWeek");
   const [seconds, setSeconds] = useState(0);
+  const machine = machineData?.data;
+  const timerBase = machineInfo?.timer_elapsed ?? 0;
+  const prefTimerBase = useRef<number>(timerBase);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (data?.data) setMachine(data.data);
-  }, [data])
-
-  useMqttJson<MqttResponses>(`machine${machine?.id}`, (data) => {
+  useMqttJson<MqttResponses>(
+    machine ? `machine${machine?.id}` : null, 
+    (data) => {
     if (data?.Machine) {
       const { OPERATORNAME, WORKNAME, PRODUCTCOUNTER, TIMECOUNTER, STATUS } = data.Machine;
       setMachineInfo({
@@ -89,19 +88,18 @@ export default function MachineDetailPage() {
     }
   })
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSeconds(machineInfo?.timer_elapsed ?? 0);
-  }, [data?.data.id, machineInfo?.timer_elapsed]);
+  if (timerBase !== prefTimerBase.current) {
+    setSeconds(timerBase);
+    prefTimerBase.current = timerBase;
+  }
 
-  // const isRunning = machine?.status === "active";
   useEffect(() => {
     const id = setInterval(() => setSeconds((s) => s + 1), 1000);
     return () => clearInterval(id);
   }, []);
 
   function findMachineAndRedirect(name: string) {
-  const selected = machineList?.data.find((m) => m.name === name);
+    const selected = machineList?.data.find((m) => m.name === name);
     if (selected) {
       router.push(`/monitoring/${selected.id}`);
     }
@@ -111,7 +109,7 @@ export default function MachineDetailPage() {
     return <MachineDetailSkeleton />;
   }
 
-  if (!data?.data || isError) {
+  if (!machineData?.data || isError) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
         <p className="text-lg font-medium">Machine not found</p>
@@ -147,10 +145,11 @@ export default function MachineDetailPage() {
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Machine</span>
           <Select
+            value={machine?.name}
             onValueChange={(value) => findMachineAndRedirect(String(value))}
           >
             <SelectTrigger className="w-40 rounded-sm">
-              <SelectValue placeholder="Select machine" />
+              <SelectValue placeholder="Select machine"/>
             </SelectTrigger>
             <SelectContent className="rounded-sm h-40" alignItemWithTrigger={false}>
               {machineList?.data.map((m) => (
