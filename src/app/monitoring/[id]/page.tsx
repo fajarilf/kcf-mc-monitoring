@@ -253,7 +253,7 @@ export default function MachineDetailPage() {
           </Select>
         </CardHeader>
         <CardContent>
-          <MachineActivityChart machineId={machine?.id.toString() || "0"} period={period} />
+          <MachineActivityChart machineId={machineId} period={period} />
         </CardContent>
       </Card>
 
@@ -266,7 +266,7 @@ export default function MachineDetailPage() {
           <Separator className="mt-2" />
         </CardHeader>
         <CardContent>
-          <MachineActivityTable machineId={machine?.id.toString() || "0"} period={period} />
+          <MachineActivityTable machineId={machineId} period={period} />
         </CardContent>
       </Card>
     </div>
