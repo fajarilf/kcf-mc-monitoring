@@ -2,21 +2,17 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Monitor,
   History,
   Users,
-  User,
   QrCode,
-  LogOut,
-  LogIn,
 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarHeader,
@@ -25,39 +21,20 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { useAuth } from "@/lib/auth";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Machine Monitoring", href: "/monitoring", icon: Monitor },
   { label: "History", href: "/history", icon: History },
-  { label: "User Management", href: "/user-management", icon: Users },
-  { label: "User", href: "/user", icon: User },
+  // { label: "User Management", href: "/user-management", icon: Users },
+  { label: "User Management", href: "/user", icon: Users },
   { label: "QR Generator", href: "/qr-generator", icon: QrCode },
 ];
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
   const { state } = useSidebar();
-  const { user, isLoggedIn, logout } = useAuth();
   const collapsed = state === "collapsed";
-
-  const handleLogout = () => {
-    logout();
-    router.push("/login");
-  };
-
-  const initials = user?.name
-    ? user.name
-        .split(" ")
-        .map((p) => p[0])
-        .slice(0, 2)
-        .join("")
-        .toUpperCase()
-    : "?";
 
   return (
     <Sidebar collapsible="icon">
@@ -74,7 +51,6 @@ export function AppSidebar() {
           {!collapsed && (
             <div className="flex flex-col leading-tight">
               <span className="text-sm font-semibold">KCF M/C Monitoring</span>
-              {/* <span className="text-xs text-muted-foreground">Monitoring</span> */}
             </div>
           )}
         </div>
@@ -106,45 +82,6 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
-        {isLoggedIn && user ? (
-          <div className="flex items-center gap-2 px-2 py-1.5">
-            <Avatar className="size-8">
-              <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-            </Avatar>
-            {!collapsed && (
-              <>
-                <div className="flex min-w-0 flex-1 flex-col leading-tight">
-                  <span className="truncate text-sm font-medium">
-                    {user.name}
-                  </span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {user.email}
-                  </span>
-                </div>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={handleLogout}
-                  aria-label="Logout"
-                  title="Logout"
-                >
-                  <LogOut className="size-4" />
-                </Button>
-              </>
-            )}
-          </div>
-        ) : (
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton className="mx-auto" render={<Link href="/login" />} tooltip="Login">
-                <LogIn />
-                <span>Login</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        )}
-      </SidebarFooter>
     </Sidebar>
   );
 }
