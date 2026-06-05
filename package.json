@@ -9,7 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@base-ui/react": "^1.4.1",
+    "@base-ui/react": "^1.5.0",
     "@tanstack/react-query": "^5.100.11",
     "axios": "^1.16.1",
     "chart.js": "^4.5.1",
