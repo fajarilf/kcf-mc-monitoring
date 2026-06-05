@@ -35,7 +35,7 @@ import {
 import { MachineActivityChart } from "@/components/monitoring/MachineActivityChart";
 import { MachineActivityTable } from "@/components/monitoring/MachineActivityTable";
 import { useMachineByIdHook, useMachineHook } from "@/hooks/use-machine";
-import { MachineData, MachineInformation } from "@/model/machine-model";
+import { MachineInformation } from "@/model/machine-model";
 import { useMqttJson } from "@/hooks/use-mqtt";
 import { MqttResponses } from "@/types/mqtt-responses";
 import { MachineDetailSkeleton } from "@/components/monitoring/Skeleton";
@@ -63,14 +63,15 @@ export default function MachineDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const machineId = params.id;
-  const { data: machineData, isLoading, isError } = useMachineByIdHook(Number(machineId));
-  const { data: machineList } = useMachineHook();
+  const { data: machineData, isLoading: machineIdLoading, isError } = useMachineByIdHook(Number(machineId));
+  const { data: machineList, isLoading: machineLoading } = useMachineHook();
   const [machineInfo, setMachineInfo] = useState<MachineInformation>();
   const [period, setPeriod] = useState<ActivityPeriod>("lastWeek");
   const [seconds, setSeconds] = useState(0);
   const machine = machineData?.data;
   const timerBase = machineInfo?.timer_elapsed ?? 0;
   const prefTimerBase = useRef<number>(timerBase);
+  const isLoading = machineIdLoading && machineLoading;
 
   useMqttJson<MqttResponses>(
     machine ? `machine${machine?.id}` : null, 

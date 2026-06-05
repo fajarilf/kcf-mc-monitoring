@@ -60,9 +60,10 @@ export function MachineCardSkeleton() {
   );
 }
 
-export function MachineDetailSkeleton() {
+/** Header row (back button + machine switcher) and the machine summary card. */
+export function MachineInfoSkeleton() {
   return (
-    <div className="flex flex-col gap-6">
+    <>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <Button
@@ -109,32 +110,52 @@ export function MachineDetailSkeleton() {
           ))}
         </CardContent>
       </Card>
+    </>
+  );
+}
 
-      <Card>
-        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-5 w-24" />
-            <Skeleton className="h-4 w-64" />
-          </div>
-          <Skeleton className="h-9 w-40 rounded-sm" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-64 w-full" />
-        </CardContent>
-      </Card>
+/** Activity card: title, period switcher, and the chart area. */
+export function MachineActivityChartSkeleton() {
+  return (
+    <Card>
+      <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-5 w-24" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        <Skeleton className="h-9 w-40 rounded-sm" />
+      </CardHeader>
+      <CardContent>
+        <Skeleton className="h-64 w-full" />
+      </CardContent>
+    </Card>
+  );
+}
 
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-5 w-28" />
-          <Skeleton className="mt-2 h-4 w-56" />
-          <Separator className="mt-2" />
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-10 w-full" />
-          ))}
-        </CardContent>
-      </Card>
+/** Activity log card: title, description, and the table rows. */
+export function MachineActivityTableSkeleton() {
+  return (
+    <Card>
+      <CardHeader>
+        <Skeleton className="h-5 w-28" />
+        <Skeleton className="mt-2 h-4 w-56" />
+        <Separator className="mt-2" />
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Skeleton key={i} className="h-10 w-full" />
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+export function MachineDetailSkeleton() {
+  return (
+    <div className="flex flex-col gap-6">
+      <MachineInfoSkeleton />
+      <MachineActivityChartSkeleton />
+      <MachineActivityTableSkeleton />
     </div>
   );
 }

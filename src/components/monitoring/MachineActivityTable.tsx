@@ -18,6 +18,7 @@ import {
 import { statusColorClass, statusLabel } from "@/lib/status";
 import { useStatusTimelineByIdHook } from "@/hooks/use-status-hook";
 import { helper } from "@/lib/helper";
+import { MachineActivityTableSkeleton } from "./Skeleton";
 
 interface Props {
   machineId: string;
@@ -51,7 +52,7 @@ export function MachineActivityTable({ machineId, period }: Props) {
     return helper.generateDateRange(period);
   }, [period]);
 
-  const { data } = useStatusTimelineByIdHook(parseInt(machineId), {
+  const { data, isLoading } = useStatusTimelineByIdHook(parseInt(machineId), {
     startDate: dateRange[0]?.toISOString().split("T")[0] ?? "",
     endDate: dateRange[dateRange.length - 1]?.toISOString().split("T")[0] ?? "",
   });
@@ -71,6 +72,10 @@ export function MachineActivityTable({ machineId, period }: Props) {
     })
     return segments.reverse();
   }, [data?.data, now]);
+
+  if (isLoading) {
+    return <MachineActivityTableSkeleton/>
+  }
 
   return (
     <div className="max-h-105 overflow-y-auto rounded-md border">
