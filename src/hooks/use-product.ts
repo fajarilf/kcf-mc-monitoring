@@ -1,0 +1,14 @@
+import { ProductParam, ProductResponse } from "@/model/product-model";
+import { productService } from "@/services/product-service";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { AxiosError } from "axios";
+
+export function useProductHook(params?: ProductParam) {
+    return useQuery<ProductResponse, AxiosError<string>>({
+        queryKey: ["use-product-hook"],
+        queryFn: () => productService.get(params),
+        staleTime: 1000 * 10,
+        refetchOnWindowFocus: true,
+        placeholderData: keepPreviousData
+    });
+}
