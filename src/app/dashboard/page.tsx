@@ -72,7 +72,7 @@ function toGanttRows(
 
   return data.map((machine) => ({
     machineId: String(machine.machineId),
-    machineName: machine.machineName,
+    machineName: machine.machineName.toUpperCase(),
     segments: machine.timeline
       .map((seg) => {
         const segStartMs = new Date(seg.start).getTime();
@@ -100,7 +100,7 @@ type MachineStatusDetail = {
 export default function DashboardPage() {
   const now = useNowTicker(1000);
   const { data: timelineData, isLoading: timelineLoading, refetch } = useStatusTimelineHook({
-    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0],
   });
 
   const { data: machineData, isLoading: machineLoading } = useMachineHook();
@@ -160,7 +160,7 @@ export default function DashboardPage() {
     // the time axis, just without any status segments.
     return (machineData?.data ?? []).map((m) => ({
       machineId: String(m.id),
-      machineName: m.name,
+      machineName: m.name.toUpperCase(),
       segments: [],
     }));
   }, [timelineData, machineData, now, shift]);
