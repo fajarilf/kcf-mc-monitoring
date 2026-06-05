@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -28,6 +28,12 @@ import {
 import { useMountedNow } from "@/hooks/use-mounted-now";
 import { useStatusActivityHook } from "@/hooks/use-status-hook";
 import { MachineActivity } from "@/model/status-model";
+import { useUsersHook } from "@/hooks/use-user-hook";
+import { UserData } from "@/model/user-model";
+import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from "../ui/combobox";
+import { MachineActivityChartSkeleton } from "./Skeleton";
+import { useProductHook } from "@/hooks/use-product";
+import { ProductData } from "@/model/product-model";
 
 ChartJS.register(
   CategoryScale,
@@ -76,7 +82,10 @@ function generateDateRange(period: ActivityPeriod): Date[] {
   return [];
 }
 
-function getTotalHoursByStatus(activityData: MachineActivity[], period: ActivityPeriod): Record<MACHINE_STATUS, number[]> {
+function getTotalHoursByStatus(
+  activityData: MachineActivity[],
+  period: ActivityPeriod,
+): Record<MACHINE_STATUS, number[]> {
   const result: Record<MACHINE_STATUS, number[]> = {
     [MACHINE_STATUS.OFF]: [],
     [MACHINE_STATUS.RUNNING]: [],
@@ -115,6 +124,8 @@ function getTotalHoursByStatus(activityData: MachineActivity[], period: Activity
 export function MachineActivityChart({ machineId, period }: Props) {
   const { resolvedTheme } = useTheme();
   const now = useMountedNow();
+  const [user, setUser] = useState<UserData | null>();
+  const [product, setProduct] = useState<ProductData | null>();
   const mounted = now !== null;
   const isDark = mounted && resolvedTheme === "dark";
 
@@ -122,11 +133,20 @@ export function MachineActivityChart({ machineId, period }: Props) {
     return generateDateRange(period);
   }, [period]);
 
-  const { data: activityData } = useStatusActivityHook({
+  const { data: userData, isLoading: userLoading } = useUsersHook();
+  const { data: productData, isLoading: productLoading } = useProductHook();
+  const { data: activityData, isLoading: activityLoading } = useStatusActivityHook({
     machineId: parseInt(machineId),
+    userId: user?.id,
+    productId: product?.id,
     startDate: dateRange[0]?.toISOString(),
     endDate: dateRange[dateRange.length - 1]?.toISOString(),
   });
+
+  const userList: UserData[] = [{id: 0, name: "All User", role: ""}, ...(userData?.data ?? [])];
+  const productList: ProductData[] = [{id: 0, productNo: "All Product", partName: "", partNo: "" }, ...(productData?.data ?? [])]
+
+  const isLoading = userLoading && activityLoading && productLoading;
 
   const tickColor = isDark ? "rgb(203, 213, 225)" : "rgb(71, 85, 105)";
   const gridColor = isDark
@@ -224,9 +244,59 @@ export function MachineActivityChart({ machineId, period }: Props) {
     },
   };
 
+  if (isLoading) {
+    return <MachineActivityChartSkeleton/>
+  }
+
   return (
-    <div className="h-70 w-full">
-      <Line data={data} options={options} />
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-end gap-10">
+        <Combobox 
+          items={productList}
+          value={product}
+          onValueChange={(data) => {
+            if (data?.id === 0) setProduct(undefined);
+            else setProduct(data);
+          }}
+          itemToStringLabel={(item: ProductData) => item.productNo}
+        >
+          <ComboboxInput className="rounded-sm" placeholder="Select a Product"/>
+          <ComboboxContent>
+            <ComboboxEmpty>No Product Found</ComboboxEmpty>
+            <ComboboxList>
+              {(item: ProductData) => (
+                <ComboboxItem key={item.id} value={item}>
+                  {item.productNo}
+                </ComboboxItem>
+              )}
+            </ComboboxList>
+          </ComboboxContent>
+        </Combobox>
+        <Combobox
+          items={userList}
+          value={user}
+          onValueChange={(data) => {
+            if (data?.id === 0) setUser(undefined);
+            else setUser(data);
+          }}
+          itemToStringLabel={(item: UserData) => item.name}
+        >
+          <ComboboxInput className="rounded-sm" placeholder="Select an User" />
+          <ComboboxContent>
+            <ComboboxEmpty>No User Found</ComboboxEmpty>
+            <ComboboxList>
+              {(item: UserData) => (
+                <ComboboxItem key={item.id} value={item}>
+                  { item.name }
+                </ComboboxItem>
+              )}
+            </ComboboxList>
+          </ComboboxContent>
+        </Combobox>
+      </div>
+      <div className="h-70 w-full">
+        <Line data={data} options={options} />
+      </div>
     </div>
   );
 }

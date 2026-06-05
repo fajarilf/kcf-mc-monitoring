@@ -39,7 +39,7 @@ export type MachineActivity = {
 export interface StatusTimelineParams extends RequestParam, StatusParams {}
 
 export interface StatusActivityParams extends RequestParam, StatusParams {
-    productId?: string,
+    productId?: number,
     code?: number,
 }
 

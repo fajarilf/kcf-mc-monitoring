@@ -3,7 +3,7 @@ import { userService } from "@/services/user-services";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 
-export function useUsersHook(params: UserParams) {
+export function useUsersHook(params?: UserParams) {
     return useQuery<UserListResponse, AxiosError<string>>({
         queryKey: ['get-users', params],
         queryFn: () => userService.get(params),
