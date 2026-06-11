@@ -18,6 +18,7 @@ import type { MachineTimeline } from "@/model/status-model";
 import { useMqttJson } from "@/hooks/use-mqtt";
 import type { MqttResponses } from "@/types/mqtt-responses";
 import { useMachineHook } from "@/hooks/use-machine";
+import { MachineData } from "@/model/machine-model";
 
 const TICKS = 6;
 const MS_PER_HOUR = 1000 * 60 * 60;
@@ -65,15 +66,21 @@ function formatClock(h: number, addSecond: boolean = true): string {
  */
 function toGanttRows(
   data: MachineTimeline[],
+  machineList: MachineData[],
   nowMs: number,
   windowStartMs: number,
 ): GanttRow[] {
   const windowEndMs = windowStartMs + SHIFT_HOURS * MS_PER_HOUR;
 
-  return data.map((machine) => ({
-    machineId: String(machine.machineId),
-    machineName: machine.machineName.toUpperCase(),
-    segments: machine.timeline
+  // Order rows deterministically by machine id so the y-axis doesn't flip
+  // when the machine API returns rows in a different order than the timeline.
+  const result: GanttRow[] = [];
+
+  for (const machine of machineList) {
+    const machineId =  String(machine.id);
+    const machineName = machine.name.toUpperCase();
+    const machineTimeline = data.find((m) => String(m.machineId) === machineId)
+    const segment = machineTimeline?.timeline
       .map((seg) => {
         const segStartMs = new Date(seg.start).getTime();
         const segEndMs = seg.end ? new Date(seg.end).getTime() : nowMs;
@@ -88,8 +95,14 @@ function toGanttRows(
           duration: end - start,
         };
       })
-      .filter((seg) => seg.duration > 0),
-  }));
+      // Drop segments that fall entirely outside the visible window — after
+      // clamping they collapse to zero duration and would draw a stray bar.
+      .filter((seg) => seg.duration > 0)
+
+    result.push({machineId, machineName, segments: segment ?? []})
+  }
+
+  return result;
 }
 
 type MachineStatusDetail = {
@@ -154,15 +167,17 @@ export default function DashboardPage() {
   const rows = useMemo<GanttRow[]>(() => {
     if (now === null || shift === null) return [];
     if (timelineData?.data && timelineData.data.length > 0) {
-      return toGanttRows(timelineData.data, now, shift.startMs);
+      return toGanttRows(timelineData.data, machineData?.data ?? [], now, shift.startMs);
     }
     // No timeline yet — still render the chart with machines on the y-axis and
     // the time axis, just without any status segments.
-    return (machineData?.data ?? []).map((m) => ({
-      machineId: String(m.id),
-      machineName: m.name.toUpperCase(),
-      segments: [],
-    }));
+    return [...(machineData?.data ?? [])]
+      .sort((a, b) => a.id - b.id)
+      .map((m) => ({
+        machineId: String(m.id),
+        machineName: m.name.toUpperCase(),
+        segments: [],
+      }));
   }, [timelineData, machineData, now, shift]);
 
   return (
