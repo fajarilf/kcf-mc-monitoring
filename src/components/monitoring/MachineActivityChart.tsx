@@ -126,6 +126,9 @@ export function MachineActivityChart({ machineId, period }: Props) {
   const now = useMountedNow();
   const [user, setUser] = useState<UserData | null>();
   const [product, setProduct] = useState<ProductData | null>();
+  const [searchUser, setSearchUser] = useState<string>();
+  const [searcProduct, setSearcProduct] = useState<string>();
+
   const mounted = now !== null;
   const isDark = mounted && resolvedTheme === "dark";
 
@@ -133,8 +136,12 @@ export function MachineActivityChart({ machineId, period }: Props) {
     return generateDateRange(period);
   }, [period]);
 
-  const { data: userData, isLoading: userLoading } = useUsersHook();
-  const { data: productData, isLoading: productLoading } = useProductHook();
+  const { data: userData, isLoading: userLoading } = useUsersHook({
+    search: searchUser
+  });
+  const { data: productData, isLoading: productLoading } = useProductHook({
+    search: searcProduct
+  });
   const { data: activityData, isLoading: activityLoading } = useStatusActivityHook({
     machineId: parseInt(machineId),
     userId: user?.id,
@@ -251,13 +258,14 @@ export function MachineActivityChart({ machineId, period }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-end gap-10">
-        <Combobox 
+        <Combobox
           items={productList}
           value={product}
           onValueChange={(data) => {
             if (data?.id === 0) setProduct(undefined);
             else setProduct(data);
           }}
+          onInputValueChange={(value) => setSearcProduct(value)}
           itemToStringLabel={(item: ProductData) => item.productNo}
         >
           <ComboboxInput className="rounded-sm" placeholder="Select a Product"/>
@@ -279,9 +287,10 @@ export function MachineActivityChart({ machineId, period }: Props) {
             if (data?.id === 0) setUser(undefined);
             else setUser(data);
           }}
+          onInputValueChange={(value) => setSearchUser(value)}
           itemToStringLabel={(item: UserData) => item.name}
         >
-          <ComboboxInput className="rounded-sm" placeholder="Select an User" />
+          <ComboboxInput className="rounded-sm" placeholder="Select an User"/>
           <ComboboxContent>
             <ComboboxEmpty>No User Found</ComboboxEmpty>
             <ComboboxList>
