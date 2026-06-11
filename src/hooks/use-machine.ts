@@ -22,3 +22,20 @@ export function useMachineByIdHook(id: number) {
         placeholderData: keepPreviousData,
     });
 }
+
+/**
+ * Lightweight backend reachability probe. Polls the machine list on a fixed
+ * interval (even in the background) so a connection indicator can reflect the
+ * live API status. Kept separate from the data hooks so its aggressive refetch
+ * cadence does not affect pages that render machine data.
+ */
+export function useApiHealthHook(intervalMs = 1000 * 15) {
+    return useQuery<MachineListResponse, AxiosError<string>>({
+        queryKey: ["api-health"],
+        queryFn: () => machineService.get(),
+        refetchInterval: intervalMs,
+        refetchIntervalInBackground: true,
+        retry: false,
+        gcTime: 0,
+    });
+}
