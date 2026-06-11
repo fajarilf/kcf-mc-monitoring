@@ -74,7 +74,7 @@ export default function MachineDetailPage() {
   const isLoading = machineIdLoading && machineLoading;
 
   useMqttJson<MqttResponses>(
-    machine ? `machine${machine?.id}` : null, 
+    machine ? `MACHINE${machine?.id}` : null, 
     (data) => {
     if (data?.Machine) {
       const { OPERATORNAME, WORKNAME, PRODUCTCOUNTER, TIMECOUNTER, STATUS } = data.Machine;
