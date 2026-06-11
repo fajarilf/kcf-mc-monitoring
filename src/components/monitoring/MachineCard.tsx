@@ -17,7 +17,7 @@ import {
   statusLabel,
 } from "@/lib/status";
 import { MachineData, MachineInformation } from "@/model/machine-model";
-import { useMqttJson } from "@/hooks/use-mqtt";
+import { useMqttJson, useMqttSubscription } from "@/hooks/use-mqtt";
 import { MqttResponses } from "@/types/mqtt-responses";
 
 const statusAccent: Record<
@@ -55,7 +55,11 @@ export function MachineCard({ machine }: { machine: MachineData }) {
   const [cardDetail, setCardDetail] = useState<MachineInformation>();
   const [accent, setAccent] = useState(statusAccent[MACHINE_STATUS.OFF]);
 
-  useMqttJson<MqttResponses>(`machine${machine.id}`, (data) => {
+  // useMqttSubscription(`MACHINE${machine.id}`, (data) => {
+  //   console.log(`mqtt: ${data.payload}`)
+  // })
+
+  useMqttJson<MqttResponses>(`MACHINE${machine.id}`, (data) => {
     if (data?.Machine) {
       const { OPERATORNAME, WORKNAME, PRODUCTCOUNTER, TIMECOUNTER, STATUS } = data.Machine;
       setCardDetail({
@@ -68,6 +72,8 @@ export function MachineCard({ machine }: { machine: MachineData }) {
       setSeconds(TIMECOUNTER);
       setAccent(statusAccent[STATUS]);
     }
+
+    // console.log(`mqtt: ${data}`)
   })
 
   return (
@@ -131,7 +137,7 @@ export function MachineCard({ machine }: { machine: MachineData }) {
 
         <div className="rounded-lg border border-border/50 bg-muted/40 p-3 text-center backdrop-blur-sm">
           <div className="text-xs uppercase tracking-wide text-muted-foreground">
-            Run Time
+            TIME
           </div>
           <div
             className={cn(
