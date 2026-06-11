@@ -17,7 +17,7 @@ import {
   statusLabel,
 } from "@/lib/status";
 import { MachineData, MachineInformation } from "@/model/machine-model";
-import { useMqttJson, useMqttSubscription } from "@/hooks/use-mqtt";
+import { useMqttJson } from "@/hooks/use-mqtt";
 import { MqttResponses } from "@/types/mqtt-responses";
 
 const statusAccent: Record<
