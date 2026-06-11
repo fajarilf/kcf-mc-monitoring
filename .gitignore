@@ -19,6 +19,7 @@
 
 # production
 /build
+oxfile.toml
 
 # misc
 .DS_Store
