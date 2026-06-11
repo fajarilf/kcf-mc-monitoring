@@ -5,7 +5,7 @@ import { AxiosError } from "axios";
 
 export function useProductHook(params?: ProductParam) {
     return useQuery<ProductResponse, AxiosError<string>>({
-        queryKey: ["use-product-hook"],
+        queryKey: ["use-product-hook", params],
         queryFn: () => productService.get(params),
         staleTime: 1000 * 10,
         refetchOnWindowFocus: true,

@@ -26,6 +26,7 @@ import {
   withAlpha,
 } from "@/lib/status";
 import { useMountedNow } from "@/hooks/use-mounted-now";
+import { useDebouncedValue } from "@/hooks/use-debounce";
 import { useStatusActivityHook } from "@/hooks/use-status-hook";
 import { MachineActivity } from "@/model/status-model";
 import { useUsersHook } from "@/hooks/use-user-hook";
@@ -127,7 +128,10 @@ export function MachineActivityChart({ machineId, period }: Props) {
   const [user, setUser] = useState<UserData | null>();
   const [product, setProduct] = useState<ProductData | null>();
   const [searchUser, setSearchUser] = useState<string>();
-  const [searcProduct, setSearcProduct] = useState<string>();
+  const [searchProduct, setSearcProduct] = useState<string>();
+
+  const debouncedSearchUser = useDebouncedValue(searchUser);
+  const debouncedSearchProduct = useDebouncedValue(searchProduct);
 
   const mounted = now !== null;
   const isDark = mounted && resolvedTheme === "dark";
@@ -137,10 +141,11 @@ export function MachineActivityChart({ machineId, period }: Props) {
   }, [period]);
 
   const { data: userData, isLoading: userLoading } = useUsersHook({
-    search: searchUser
+    search: debouncedSearchUser
   });
   const { data: productData, isLoading: productLoading } = useProductHook({
-    search: searcProduct
+    search: debouncedSearchProduct,
+    paginate: debouncedSearchProduct === ""
   });
   const { data: activityData, isLoading: activityLoading } = useStatusActivityHook({
     machineId: parseInt(machineId),
