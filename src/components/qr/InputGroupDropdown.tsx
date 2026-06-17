@@ -23,8 +23,9 @@ const values: DropdownValue[] = [
 
 export function InputGroupDropdown({ onValueChange }: Props) {
     const [selectedType, setSelectedType] = useState<DropdownValue>();
-    const [user, setUser] = useState<UserData | null>();
+    const [user, setUser] = useState<UserData | null>(null);
     const [searchUser, setSearchUser] = useState<string>();
+    const [textValue, setTextValue] = useState("");
 
     const isOperator = selectedType?.value === "Operator";
 
@@ -38,8 +39,9 @@ export function InputGroupDropdown({ onValueChange }: Props) {
         setSelectedType(type);
         // Switching type clears any previously chosen operator/typed value so
         // the parent does not keep receiving a stale selection.
-        setUser(undefined);
+        setUser(null);
         setSearchUser(undefined);
+        setTextValue("");
         onValueChange(undefined);
     };
 
@@ -69,7 +71,14 @@ export function InputGroupDropdown({ onValueChange }: Props) {
                     </ComboboxContent>
                 </Combobox>
             ):(
-                <InputGroupInput onChange={(v) => onValueChange(v.target.value)} placeholder="Type here..."/>
+                <InputGroupInput
+                    value={textValue}
+                    onChange={(e) => {
+                        setTextValue(e.target.value);
+                        onValueChange(e.target.value);
+                    }}
+                    placeholder="Type here..."
+                />
             )}
             <InputGroupAddon align="inline-end">
                 <DropdownMenu>

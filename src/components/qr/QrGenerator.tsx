@@ -102,15 +102,8 @@ export function QrGenerator() {
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="qr-value">Value</Label>
+          <Label>Value</Label>
           <InputGroupDropdown onValueChange={(v) => setValue(v || "")}/>
-          {/* <Input
-            id="qr-value"
-            placeholder="https://example.com or any text"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            autoComplete="off"
-          /> */}
         </div>
 
         <div className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-xl border bg-muted/40 p-4">
