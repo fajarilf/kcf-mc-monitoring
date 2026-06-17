@@ -11,8 +11,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { InputGroupDropdown } from "./InputGroupDropdown";
 
 interface GeneratedQr {
   text: string;
@@ -103,13 +103,14 @@ export function QrGenerator() {
       <CardContent className="flex flex-col gap-5">
         <div className="flex flex-col gap-2">
           <Label htmlFor="qr-value">Value</Label>
-          <Input
+          <InputGroupDropdown onValueChange={(v) => setValue(v || "")}/>
+          {/* <Input
             id="qr-value"
             placeholder="https://example.com or any text"
             value={value}
             onChange={(e) => setValue(e.target.value)}
             autoComplete="off"
-          />
+          /> */}
         </div>
 
         <div className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-xl border bg-muted/40 p-4">
