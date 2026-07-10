@@ -112,8 +112,17 @@ type MachineStatusDetail = {
 
 export default function DashboardPage() {
   const now = useNowTicker(1000);
+  const dateRange = useMemo(() => {
+    if (!now) return { startDate: undefined, endDate: undefined };
+    return {
+      startDate: new Date(now - 86_400_000).toISOString().split('T')[0],
+      endDate: new Date(now).toISOString().split('T')[0],
+    };
+  }, [now]);
+
   const { data: timelineData, isLoading: timelineLoading, refetch } = useStatusTimelineHook({
-    endDate: new Date().toISOString().split('T')[0],
+    startDate: dateRange.startDate,
+    endDate: dateRange.endDate,
   });
 
   const { data: machineData, isLoading: machineLoading } = useMachineHook();
