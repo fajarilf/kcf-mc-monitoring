@@ -1,11 +1,13 @@
 import { ChevronDownIcon } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
-import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "../ui/input-group";
+import { InputGroup, InputGroupAddon, InputGroupButton } from "../ui/input-group";
 import { useState } from "react";
 import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from "../ui/combobox";
 import { UserData } from "@/model/user-model";
 import { useUsersHook } from "@/hooks/use-user-hook";
 import { useDebouncedValue } from "@/hooks/use-debounce";
+import { ProductData } from "@/model/product-model";
+import { useProductHook } from "@/hooks/use-product";
 
 type DropdownValue = {
     id: number,
@@ -21,18 +23,27 @@ const values: DropdownValue[] = [
     {id: 2, value: "Operator"},
 ];
 
+const DEFAULT_TYPE = values[0];
+
 export function InputGroupDropdown({ onValueChange }: Props) {
-    const [selectedType, setSelectedType] = useState<DropdownValue>();
+    const [selectedType, setSelectedType] = useState<DropdownValue>(DEFAULT_TYPE);
     const [user, setUser] = useState<UserData | null>(null);
+    const [product, setProduct] = useState<ProductData | null>(null);
     const [searchUser, setSearchUser] = useState<string>();
-    const [textValue, setTextValue] = useState("");
+    const [searchProduct, setSearchProduct] = useState<string>();
 
     const isOperator = selectedType?.value === "Operator";
+    const isWorkName = selectedType?.value === "Work Name";
 
     const debouncedSearchUser = useDebouncedValue(searchUser);
+    const debouncedSearchProduct = useDebouncedValue(searchProduct);
     const { data: userData } = useUsersHook(
         { search: debouncedSearchUser },
         { enabled: isOperator },
+    );
+    const { data: productData } = useProductHook(
+        { search: debouncedSearchProduct },
+        { enabled: isWorkName },
     );
 
     const handleTypeChange = (type: DropdownValue) => {
@@ -40,8 +51,9 @@ export function InputGroupDropdown({ onValueChange }: Props) {
         // Switching type clears any previously chosen operator/typed value so
         // the parent does not keep receiving a stale selection.
         setUser(null);
+        setProduct(null);
         setSearchUser(undefined);
-        setTextValue("");
+        setSearchProduct(undefined);
         onValueChange(undefined);
     };
 
@@ -70,15 +82,29 @@ export function InputGroupDropdown({ onValueChange }: Props) {
                         </ComboboxList>
                     </ComboboxContent>
                 </Combobox>
-            ):(
-                <InputGroupInput
-                    value={textValue}
-                    onChange={(e) => {
-                        setTextValue(e.target.value);
-                        onValueChange(e.target.value);
+            ) : (
+                <Combobox
+                    items={productData?.data}
+                    value={product}
+                    onValueChange={(data) => {
+                        setProduct(data);
+                        onValueChange(data?.partName);
                     }}
-                    placeholder="Type here..."
-                />
+                    onInputValueChange={(value) => setSearchProduct(value)}
+                    itemToStringLabel={(item: ProductData) => item.partName}
+                >
+                    <ComboboxInput showTrigger={false} className="rounded-sm border-none flex-1" placeholder="Select a Product"/>
+                    <ComboboxContent>
+                        <ComboboxEmpty>No Product Found</ComboboxEmpty>
+                        <ComboboxList>
+                        {(item: ProductData) => (
+                            <ComboboxItem key={item.id} value={item}>
+                            { item.partName }
+                            </ComboboxItem>
+                        )}
+                        </ComboboxList>
+                    </ComboboxContent>
+                </Combobox>
             )}
             <InputGroupAddon align="inline-end">
                 <DropdownMenu>
