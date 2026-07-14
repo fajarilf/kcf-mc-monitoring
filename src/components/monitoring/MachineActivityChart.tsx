@@ -156,7 +156,7 @@ export function MachineActivityChart({ machineId, period }: Props) {
   });
 
   const userList: UserData[] = [{id: 0, name: "All User", role: ""}, ...(userData?.data ?? [])];
-  const productList: ProductData[] = [{id: 0, productNo: "All Product", partName: "", partNo: "" }, ...(productData?.data ?? [])]
+  const productList: ProductData[] = [{id: 0, productNo: "", partName: "", partNo: "All Part" }, ...(productData?.data ?? [])]
 
   const isLoading = userLoading && activityLoading && productLoading;
 
@@ -271,7 +271,7 @@ export function MachineActivityChart({ machineId, period }: Props) {
             else setProduct(data);
           }}
           onInputValueChange={(value) => setSearcProduct(value)}
-          itemToStringLabel={(item: ProductData) => item.productNo}
+          itemToStringLabel={(item: ProductData) => item.partNo}
         >
           <ComboboxInput className="rounded-sm" placeholder="Select a Product"/>
           <ComboboxContent>
@@ -279,7 +279,7 @@ export function MachineActivityChart({ machineId, period }: Props) {
             <ComboboxList>
               {(item: ProductData) => (
                 <ComboboxItem key={item.id} value={item}>
-                  {item.productNo}
+                  {item.partNo}
                 </ComboboxItem>
               )}
             </ComboboxList>
