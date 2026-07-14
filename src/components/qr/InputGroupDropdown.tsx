@@ -91,7 +91,7 @@ export function InputGroupDropdown({ onValueChange }: Props) {
                         onValueChange(data?.partName);
                     }}
                     onInputValueChange={(value) => setSearchProduct(value)}
-                    itemToStringLabel={(item: ProductData) => item.partName}
+                    itemToStringLabel={(item: ProductData) => `${item.partNo}: ${item.partName}`}
                 >
                     <ComboboxInput showTrigger={false} className="rounded-sm border-none flex-1" placeholder="Select a Product"/>
                     <ComboboxContent>
@@ -99,7 +99,8 @@ export function InputGroupDropdown({ onValueChange }: Props) {
                         <ComboboxList>
                         {(item: ProductData) => (
                             <ComboboxItem key={item.id} value={item}>
-                            { item.partName }
+                                <span className="text-lg w-36 shrink-0">{item.partNo}</span>
+                                <span className="text-muted-foreground text-xs">{item.partName}</span>
                             </ComboboxItem>
                         )}
                         </ComboboxList>
