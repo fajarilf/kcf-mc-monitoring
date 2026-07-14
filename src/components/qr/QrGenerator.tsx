@@ -42,7 +42,7 @@ export function QrGenerator() {
   const [qr, setQr] = useState<GeneratedQr | null>(null);
   const [failure, setFailure] = useState<QrFailure | null>(null);
 
-  const text = value.trim();
+  const text = value.split(':')[0].trim();
 
   useEffect(() => {
     if (!text) return;
