@@ -88,7 +88,7 @@ export function InputGroupDropdown({ onValueChange }: Props) {
                     value={product}
                     onValueChange={(data) => {
                         setProduct(data);
-                        onValueChange(data?.partName);
+                        onValueChange(data ? `${data.partNo}: ${data.partName}` : undefined);
                     }}
                     onInputValueChange={(value) => setSearchProduct(value)}
                     itemToStringLabel={(item: ProductData) => `${item.partNo}: ${item.partName}`}
