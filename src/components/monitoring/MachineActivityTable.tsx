@@ -12,17 +12,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import {
-  type ActivityPeriod,
-} from "@/lib/mock-data";
 import { statusColorClass, statusLabel } from "@/lib/status";
 import { useStatusTimelineByIdHook } from "@/hooks/use-status-hook";
-import { helper } from "@/lib/helper";
 import { MachineActivityTableSkeleton } from "./Skeleton";
 
 interface Props {
   machineId: string;
-  period: ActivityPeriod;
+  startDate: string;
+  endDate: string;
 }
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -45,16 +42,12 @@ function formatDuration(hours: number): string {
   return `${h}h ${m}m`;
 }
 
-export function MachineActivityTable({ machineId, period }: Props) {
+export function MachineActivityTable({ machineId, startDate, endDate }: Props) {
   const now = useMountedNow();
 
-  const dateRange = useMemo<Date[]>(() => {
-    return helper.generateDateRange(period);
-  }, [period]);
-
   const { data, isLoading } = useStatusTimelineByIdHook(parseInt(machineId), {
-    startDate: dateRange[0]?.toISOString().split("T")[0] ?? "",
-    endDate: dateRange[dateRange.length - 1]?.toISOString().split("T")[0] ?? "",
+    startDate: startDate || undefined,
+    endDate: endDate || undefined,
   });
 
   const events = useMemo(() => {

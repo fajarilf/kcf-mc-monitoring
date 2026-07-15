@@ -162,8 +162,8 @@ export default function DashboardPage() {
       machines.filter((m) => m.status === status).length;
     return {
       running: by(MACHINE_STATUS.RUNNING),
-      setup: by(MACHINE_STATUS.SETUP),
-      cyokotei: by(MACHINE_STATUS.CYOKOTEI_STOP),
+      setup: by(MACHINE_STATUS.DANDORI),
+      cyokotei: by(MACHINE_STATUS.CYOKOTEI),
       off: by(MACHINE_STATUS.OFF),
     };
   }, [machines]);

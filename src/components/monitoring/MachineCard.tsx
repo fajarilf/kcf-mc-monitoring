@@ -30,23 +30,29 @@ const statusAccent: Record<
     dot: "bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.18)]",
     bar: "bg-emerald-500",
   },
-  [MACHINE_STATUS.SETUP]: {
-    ring: "ring-amber-500/30 dark:ring-amber-400/30",
-    glow: "from-amber-500/10",
-    dot: "bg-amber-500 shadow-[0_0_0_3px_rgba(245,158,11,0.18)]",
-    bar: "bg-amber-500",
+  [MACHINE_STATUS.DANDORI]: {
+    ring: "ring-orange-500/30 dark:ring-orange-400/30",
+    glow: "from-orange-500/10",
+    dot: "bg-orange-500 shadow-[0_0_0_3px_rgba(249,115,22,0.18)]",
+    bar: "bg-orange-500",
   },
-  [MACHINE_STATUS.CYOKOTEI_STOP]: {
+  [MACHINE_STATUS.CYOKOTEI]: {
     ring: "ring-rose-500/30 dark:ring-rose-400/30",
     glow: "from-rose-500/10",
     dot: "bg-rose-500 shadow-[0_0_0_3px_rgba(244,63,94,0.18)]",
     bar: "bg-rose-500",
   },
   [MACHINE_STATUS.OFF]: {
-    ring: "ring-slate-500/30 dark:ring-slate-400/30",
-    glow: "from-slate-500/10",
-    dot: "bg-slate-500 shadow-[0_0_0_3px_rgba(100,116,139,0.18)]",
-    bar: "bg-slate-500",
+    ring: "ring-black/30 dark:ring-white/30",
+    glow: "from-black/10",
+    dot: "bg-black shadow-[0_0_0_3px_rgba(0,0,0,0.18)]",
+    bar: "bg-black",
+  },
+  [MACHINE_STATUS.SETUP]: {
+    ring: "ring-gray-500/30 dark:ring-gray-400/30",
+    glow: "from-gray-500/10",
+    dot: "bg-gray-500 shadow-[0_0_0_3px_rgba(107,114,128,0.18)]",
+    bar: "bg-gray-500",
   },
 };
 

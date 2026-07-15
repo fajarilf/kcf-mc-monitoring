@@ -162,7 +162,8 @@ export function GanttBarChart({
         {[
           MACHINE_STATUS.OFF,
           MACHINE_STATUS.RUNNING,
-          MACHINE_STATUS.CYOKOTEI_STOP,
+          MACHINE_STATUS.CYOKOTEI,
+          MACHINE_STATUS.DANDORI,
           MACHINE_STATUS.SETUP,
         ].map((s) => (
           <div key={s} className="flex items-center gap-2">
