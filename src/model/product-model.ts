@@ -9,5 +9,11 @@ export type ProductData = {
     createdAt?: Date
 }
 
+export type ProductUpdatePayload = {
+    productNo: string,
+    partName: string,
+    partNo: string,
+}
+
 export type ProductParam = RequestParam;
 export type ProductResponse = ApiResponses<ProductData[]>;
