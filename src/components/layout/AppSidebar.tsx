@@ -9,6 +9,7 @@ import {
   History,
   Users,
   QrCode,
+  Box,
 } from "lucide-react";
 import {
   Sidebar,
@@ -26,7 +27,7 @@ const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Machine Monitoring", href: "/monitoring", icon: Monitor },
   { label: "History", href: "/history", icon: History },
-  // { label: "User Management", href: "/user-management", icon: Users },
+  { label: "Product List", href: "/list-product", icon: Box },
   { label: "User Management", href: "/user", icon: Users },
   { label: "QR Generator", href: "/qr-generator", icon: QrCode },
 ];

@@ -31,12 +31,7 @@ api.interceptors.response.use(
     (response) => response,
     (error: AxiosError<ApiErrorBody>) => {
         if (axios.isCancel(error)) return Promise.reject(error);
-
-        console.error(
-            `[API] ${error.config?.method?.toUpperCase()} ${error.config?.url} → ${error.response?.status}`,
-            error.response?.data,
-        );
-
+        
         const status = error.response?.status;
         const isTimeout = error.code === "ECONNABORTED" || error.code === "ETIMEOUT";
 
