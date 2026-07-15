@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { useUsersHook } from "@/hooks/use-user-hook";
+import { UserUpdateModal } from "./UserUpdateModal";
 import type { UserData, UserParams } from "@/model/user-model";
 
 const PAGE_SIZE = 10;
@@ -37,13 +38,14 @@ function getPageItems(current: number, total: number): (number | "gap")[] {
 
 export function UserTable() {
   const [page, setPage] = useState(1);
+  const [editUser, setEditUser] = useState<UserData | null>(null);
 
   const params = useMemo<UserParams>(
     () => ({ page, limit: PAGE_SIZE, search: "", paginate: true }),
     [page],
   );
 
-  const { data, isLoading, isFetching, isError, error } = useUsersHook(params);
+  const { data, isLoading, isFetching, isError, error, refetch } = useUsersHook(params);
 
   const users = data?.data ?? [];
   const pagination = data?.pagination;
@@ -56,8 +58,7 @@ export function UserTable() {
   const busy = isFetching && !isLoading;
 
   function handleUpdate(user: UserData) {
-    // TODO: wire up the update action (open form / call API).
-    console.log("update user", user.id);
+    setEditUser(user);
   }
 
   function handleDelete(user: UserData) {
@@ -66,13 +67,21 @@ export function UserTable() {
   }
 
   return (
+    <>
+    <UserUpdateModal
+      key={editUser?.id}
+      user={editUser}
+      open={!!editUser}
+      onOpenChange={(open) => !open && setEditUser(null)}
+      onSuccess={() => refetch()}
+    />
     <div className="overflow-hidden rounded-xl border bg-card">
       <Table className={cn("transition-opacity", busy && "opacity-60")}>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
             <TableHead className="pl-4">Name</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Username</TableHead>
+            {/* <TableHead>Email</TableHead>
+            <TableHead>Username</TableHead> */}
             <TableHead>Role</TableHead>
             <TableHead>Group</TableHead>
             <TableHead>Machine</TableHead>
@@ -113,12 +122,12 @@ export function UserTable() {
             users.map((user) => (
               <TableRow key={user.id}>
                 <TableCell className="pl-4 font-medium">{user.name}</TableCell>
-                <TableCell className="text-muted-foreground">
+                {/* <TableCell className="text-muted-foreground">
                   {user.email || "-"}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {user.username || "-"}
-                </TableCell>
+                </TableCell> */}
                 <TableCell>
                   <RoleBadge role={user.role} />
                 </TableCell>
@@ -136,7 +145,6 @@ export function UserTable() {
                       onClick={() => handleUpdate(user)}
                     >
                       <Pencil />
-                      Update
                     </Button>
                     <Button
                       size="sm"
@@ -144,7 +152,6 @@ export function UserTable() {
                       onClick={() => handleDelete(user)}
                     >
                       <Trash2 />
-                      Delete
                     </Button>
                   </div>
                 </TableCell>
@@ -205,6 +212,7 @@ export function UserTable() {
         </div>
       )}
     </div>
+    </>
   );
 }
 
