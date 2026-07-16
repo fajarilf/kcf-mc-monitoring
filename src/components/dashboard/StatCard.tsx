@@ -6,7 +6,7 @@ interface StatCardProps {
   label: string;
   value: number;
   icon: LucideIcon;
-  tone: "green" | "yellow" | "red" | "gray";
+  tone: "green" | "yellow" | "red" | "gray" | "black";
 }
 
 const toneStyles: Record<
@@ -33,6 +33,11 @@ const toneStyles: Record<
     icon: "",
     ring: "ring-slate-500/20",
   },
+  black: {
+    wrap: "bg-black text-white",
+    icon: "",
+    ring: "ring-black",
+  }
 };
 
 export function StatCard({ label, value, icon: Icon, tone }: StatCardProps) {

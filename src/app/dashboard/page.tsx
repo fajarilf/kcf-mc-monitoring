@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import { Activity, PowerOff, Wrench, XCircle } from "lucide-react";
+import { Activity, Clock, PowerOff, Wrench, XCircle } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -162,8 +162,9 @@ export default function DashboardPage() {
       machines.filter((m) => m.status === status).length;
     return {
       running: by(MACHINE_STATUS.RUNNING),
-      setup: by(MACHINE_STATUS.DANDORI),
-      cyokotei: by(MACHINE_STATUS.CYOKOTEI),
+      dandori: by(MACHINE_STATUS.DANDORI),
+      cyokotei: by(MACHINE_STATUS.CYOKOTEI_STOP),
+      setup: by(MACHINE_STATUS.SETUP),
       off: by(MACHINE_STATUS.OFF),
     };
   }, [machines]);
@@ -191,7 +192,7 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard
           label="Running"
           value={counts.running}
@@ -199,10 +200,16 @@ export default function DashboardPage() {
           tone="green"
         />
         <StatCard
+          label="Dandori"
+          value={counts.dandori}
+          icon={Clock}
+          tone="yellow"
+        />
+        <StatCard
           label="Setup"
           value={counts.setup}
           icon={Wrench}
-          tone="yellow"
+          tone="gray"
         />
         <StatCard
           label="Cyokotei Stop"
@@ -210,7 +217,7 @@ export default function DashboardPage() {
           icon={XCircle}
           tone="red"
         />
-        <StatCard label="Off" value={counts.off} icon={PowerOff} tone="gray" />
+        <StatCard label="Off" value={counts.off} icon={PowerOff} tone="black" />
       </div>
 
       <Card>

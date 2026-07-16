@@ -162,7 +162,7 @@ export function GanttBarChart({
         {[
           MACHINE_STATUS.OFF,
           MACHINE_STATUS.RUNNING,
-          MACHINE_STATUS.CYOKOTEI,
+          MACHINE_STATUS.CYOKOTEI_STOP,
           MACHINE_STATUS.DANDORI,
           MACHINE_STATUS.SETUP,
         ].map((s) => (

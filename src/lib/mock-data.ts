@@ -59,7 +59,7 @@ export const machines: Machine[] = [
   {
     id: "M006",
     name: "Machine F",
-    status: MACHINE_STATUS.CYOKOTEI,
+    status: MACHINE_STATUS.CYOKOTEI_STOP,
     currentProduct: "Housing H-04",
     operators: ["Rizky Pratama", "Lina Marlina"],
     elapsedSeconds: 240,
@@ -95,7 +95,7 @@ export const machines: Machine[] = [
   {
     id: "M010",
     name: "Machine J",
-    status: MACHINE_STATUS.CYOKOTEI,
+    status: MACHINE_STATUS.CYOKOTEI_STOP,
     currentProduct: "Hinge HN-3",
     operators: ["Maya Putri", "Budi Santoso"],
     elapsedSeconds: 120,
@@ -126,7 +126,7 @@ function buildSegments(totalHours: number, seed: number): GanttSegment[] {
     MACHINE_STATUS.RUNNING,
     MACHINE_STATUS.OFF,
     MACHINE_STATUS.RUNNING,
-    MACHINE_STATUS.CYOKOTEI,
+    MACHINE_STATUS.CYOKOTEI_STOP,
   ];
   while (cursor < totalHours) {
     const remaining = totalHours - cursor;
@@ -194,7 +194,7 @@ export function getDailyHoursByStatus(
   const result: Record<MACHINE_STATUS, number[]> = {
     [MACHINE_STATUS.OFF]: new Array(days).fill(0) as number[],
     [MACHINE_STATUS.RUNNING]: new Array(days).fill(0) as number[],
-    [MACHINE_STATUS.CYOKOTEI]: new Array(days).fill(0) as number[],
+    [MACHINE_STATUS.CYOKOTEI_STOP]: new Array(days).fill(0) as number[],
     [MACHINE_STATUS.DANDORI]: new Array(days).fill(0) as number[],
     [MACHINE_STATUS.SETUP]: new Array(days).fill(0) as number[],
   };

@@ -49,7 +49,7 @@ import { FillTemplateData } from "@/lib/template/fill-template";
 const accentBar: Record<MACHINE_STATUS, string> = {
   [MACHINE_STATUS.OFF]: "bg-black",
   [MACHINE_STATUS.RUNNING]: "bg-emerald-500",
-  [MACHINE_STATUS.CYOKOTEI]: "bg-rose-500",
+  [MACHINE_STATUS.CYOKOTEI_STOP]: "bg-rose-500",
   [MACHINE_STATUS.DANDORI]: "bg-orange-500",
   [MACHINE_STATUS.SETUP]: "bg-gray-500",
 };
@@ -58,7 +58,7 @@ const accentDot: Record<MACHINE_STATUS, string> = {
   [MACHINE_STATUS.OFF]: "bg-black shadow-[0_0_0_3px_rgba(0,0,0,0.18)]",
   [MACHINE_STATUS.RUNNING]:
     "bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.18)]",
-  [MACHINE_STATUS.CYOKOTEI]:
+  [MACHINE_STATUS.CYOKOTEI_STOP]:
     "bg-rose-500 shadow-[0_0_0_3px_rgba(244,63,94,0.18)]",
   [MACHINE_STATUS.DANDORI]:
     "bg-orange-500 shadow-[0_0_0_3px_rgba(249,115,22,0.18)]",

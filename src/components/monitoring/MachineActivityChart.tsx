@@ -51,7 +51,7 @@ interface Props {
 const STATUSES: MACHINE_STATUS[] = [
   MACHINE_STATUS.OFF,
   MACHINE_STATUS.RUNNING,
-  MACHINE_STATUS.CYOKOTEI,
+  MACHINE_STATUS.CYOKOTEI_STOP,
   MACHINE_STATUS.DANDORI,
   MACHINE_STATUS.SETUP,
 ];
@@ -79,7 +79,7 @@ function getTotalHoursByStatus(
   const result: Record<MACHINE_STATUS, number[]> = {
     [MACHINE_STATUS.OFF]: [],
     [MACHINE_STATUS.RUNNING]: [],
-    [MACHINE_STATUS.CYOKOTEI]: [],
+    [MACHINE_STATUS.CYOKOTEI_STOP]: [],
     [MACHINE_STATUS.DANDORI]: [],
     [MACHINE_STATUS.SETUP]: [],
   };
@@ -92,7 +92,7 @@ function getTotalHoursByStatus(
     const dailyTotals: Record<MACHINE_STATUS, number> = {
       [MACHINE_STATUS.OFF]: 0,
       [MACHINE_STATUS.RUNNING]: 0,
-      [MACHINE_STATUS.CYOKOTEI]: 0,
+      [MACHINE_STATUS.CYOKOTEI_STOP]: 0,
       [MACHINE_STATUS.DANDORI]: 0,
       [MACHINE_STATUS.SETUP]: 0,
     };

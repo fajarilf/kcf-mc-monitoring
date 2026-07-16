@@ -36,7 +36,7 @@ const statusAccent: Record<
     dot: "bg-orange-500 shadow-[0_0_0_3px_rgba(249,115,22,0.18)]",
     bar: "bg-orange-500",
   },
-  [MACHINE_STATUS.CYOKOTEI]: {
+  [MACHINE_STATUS.CYOKOTEI_STOP]: {
     ring: "ring-rose-500/30 dark:ring-rose-400/30",
     glow: "from-rose-500/10",
     dot: "bg-rose-500 shadow-[0_0_0_3px_rgba(244,63,94,0.18)]",
