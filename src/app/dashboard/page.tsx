@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Activity, Clock, PowerOff, Wrench, XCircle } from "lucide-react";
 import {
   Card,
@@ -8,6 +8,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { GanttBarChart } from "@/components/dashboard/GanttBarChart";
 import { type GanttRow } from "@/lib/mock-data";
@@ -20,28 +27,35 @@ import type { MqttResponses } from "@/types/mqtt-responses";
 import { useMachineHook } from "@/hooks/use-machine";
 import { MachineData } from "@/model/machine-model";
 
+type ViewMode = "12h" | "24h";
+
 const TICKS = 6;
 const MS_PER_HOUR = 1000 * 60 * 60;
-const SHIFT_HOURS = 12;
 
 /**
- * Resolves the visible 12-hour shift window from the current time.
- * Day shift runs 06:00→18:00; once the clock passes 18:00 (and until the
- * next 06:00) it flips to the night shift 18:00→06:00.
+ * Resolves the visible window from the current time.
+ * 12h mode: Day shift 06:00→18:00, Night shift 18:00→06:00.
+ * 24h mode: Full day 00:00→24:00.
  */
-function getShiftWindow(nowMs: number): { startMs: number; startHour: number } {
+function getShiftWindow(nowMs: number, mode: ViewMode): { startMs: number; startHour: number; hours: number } {
   const base = new Date(nowMs);
   base.setMinutes(0, 0, 0);
-  const h = base.getHours();
 
+  if (mode === "24h") {
+    base.setHours(0, 0, 0, 0);
+    return { startMs: base.getTime(), startHour: 0, hours: 24 };
+  }
+
+  // 12h shift mode
+  const h = base.getHours();
   if (h >= 6 && h < 18) {
     base.setHours(6);
-    return { startMs: base.getTime(), startHour: 6 };
+    return { startMs: base.getTime(), startHour: 6, hours: 12 };
   }
   // Night shift: 18:00 → 06:00. Before 06:00 the shift began the previous day.
   if (h < 6) base.setDate(base.getDate() - 1);
   base.setHours(18);
-  return { startMs: base.getTime(), startHour: 18 };
+  return { startMs: base.getTime(), startHour: 18, hours: 12 };
 }
 
 function formatClock(h: number, addSecond: boolean = true): string {
@@ -60,8 +74,8 @@ function formatClock(h: number, addSecond: boolean = true): string {
 
 /**
  * Converts the status-timeline API payload into Gantt rows.
- * Segment times are expressed as hours since the shift window start so they
- * line up with the chart's 0–12h axis; open segments (end: null) run up to
+ * Segment times are expressed as hours since the window start so they
+ * line up with the chart's axis; open segments (end: null) run up to
  * `nowMs`. The API's numeric status maps directly onto the MACHINE_STATUS enum.
  */
 function toGanttRows(
@@ -69,8 +83,9 @@ function toGanttRows(
   machineList: MachineData[],
   nowMs: number,
   windowStartMs: number,
+  windowHours: number,
 ): GanttRow[] {
-  const windowEndMs = windowStartMs + SHIFT_HOURS * MS_PER_HOUR;
+  const windowEndMs = windowStartMs + windowHours * MS_PER_HOUR;
 
   // Order rows deterministically by machine id so the y-axis doesn't flip
   // when the machine API returns rows in a different order than the timeline.
@@ -112,13 +127,17 @@ type MachineStatusDetail = {
 
 export default function DashboardPage() {
   const now = useNowTicker(1000);
+  const [viewMode, setViewMode] = useState<ViewMode>("12h");
+
   const dateRange = useMemo(() => {
     if (!now) return { startDate: undefined, endDate: undefined };
+    // For 24h mode, fetch 2 days to cover the full day
+    const msBack = viewMode === "24h" ? 2 * 86_400_000 : 86_400_000;
     return {
-      startDate: new Date(now - 86_400_000).toISOString().split('T')[0],
+      startDate: new Date(now - msBack).toISOString().split('T')[0],
       endDate: new Date(now).toISOString().split('T')[0],
     };
-  }, [now]);
+  }, [now, viewMode]);
 
   const { data: timelineData, isLoading: timelineLoading, refetch } = useStatusTimelineHook({
     startDate: dateRange.startDate,
@@ -170,14 +189,14 @@ export default function DashboardPage() {
   }, [machines]);
 
   const shift = useMemo(
-    () => (now === null ? null : getShiftWindow(now)),
-    [now],
+    () => (now === null ? null : getShiftWindow(now, viewMode)),
+    [now, viewMode],
   );
 
   const rows = useMemo<GanttRow[]>(() => {
     if (now === null || shift === null) return [];
     if (timelineData?.data && timelineData.data.length > 0) {
-      return toGanttRows(timelineData.data, machineData?.data ?? [], now, shift.startMs);
+      return toGanttRows(timelineData.data, machineData?.data ?? [], now, shift.startMs, shift.hours);
     }
     // No timeline yet — still render the chart with machines on the y-axis and
     // the time axis, just without any status segments.
@@ -225,6 +244,15 @@ export default function DashboardPage() {
           <div className="mx-auto text-center">
             <CardTitle className="text-[20px] mb-2">Machine Activity Timeline</CardTitle>
           </div>
+          <Select value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
+            <SelectTrigger className="w-32 rounded-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="12h">12 Hour</SelectItem>
+              <SelectItem value="24h">24 Hour</SelectItem>
+            </SelectContent>
+          </Select>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -234,9 +262,9 @@ export default function DashboardPage() {
           ) : (
             <GanttBarChart
               rows={rows}
-              totalUnits={SHIFT_HOURS}
+              totalUnits={shift?.hours ?? 12}
               unitLabel="h"
-              tickCount={TICKS}
+              tickCount={viewMode === "24h" ? 12 : TICKS}
               formatTick={(h) => formatClock((shift?.startHour ?? 0) + h, false)}
               formatClock={(h) => formatClock((shift?.startHour ?? 0) + h)}
             />
