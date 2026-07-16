@@ -44,4 +44,5 @@ yarn-error.log*
 next-env.d.ts
 
 # editor
-.vscode~.xlsx
+.vscode
+~.xlsx
