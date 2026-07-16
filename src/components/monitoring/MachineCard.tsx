@@ -112,7 +112,7 @@ export function MachineCard({ machine }: { machine: MachineData }) {
             />
             <CardTitle className="text-base">{machine.name}</CardTitle>
           </div>
-          <span className="text-xs text-muted-foreground">{machine.id}</span>
+          {/* <span className="text-xs text-muted-foreground">{machine.id}</span> */}
         </div>
         <Badge
           variant="outline"
@@ -122,19 +122,25 @@ export function MachineCard({ machine }: { machine: MachineData }) {
         </Badge>
       </CardHeader>
       <CardContent className="relative flex flex-1 flex-col gap-4 pl-5">
-        <div className="flex gap-2 text-sm">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Package className="size-4 shrink-0" />
-            <span className="truncate">
-              <span className="text-foreground">
+        <div className="flex-row gap-4 text-sm">
+          <div className="flex-row items-center gap-2 text-muted-foreground">
+            <span className="flex gap-2 font-bold items-center">
+              <Package className="size-4 shrink-0" /> 
+              Work Name
+            </span>
+            <span className="truncate ml-6">
+              <span className="text-foreground py-1 px-2">
                 {cardDetail?.product || "-"}
               </span>
             </span>
           </div>
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <User className="size-4 shrink-0" />
-            <span className="truncate">
-              <span className="text-foreground">
+          <div className="flex-row items-center gap-2 text-muted-foreground">
+            <span className="flex gap-2 font-bold items-center">
+              <User className="size-4 shrink-0" /> 
+              Worker / Operator
+            </span>
+            <span className="truncate ml-6">
+              <span className="text-foreground py-1 px-2">
                 {cardDetail?.operator || "-"}
               </span>
             </span>
