@@ -5,15 +5,13 @@ import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
-  PointElement,
-  LineElement,
-  Filler,
+  BarElement,
   Tooltip,
   Legend,
   type ChartOptions,
   type ChartData,
 } from "chart.js";
-import { Line } from "react-chartjs-2";
+import { Bar } from "react-chartjs-2";
 import { useTheme } from "next-themes";
 import {
   MACHINE_STATUS,
@@ -35,9 +33,7 @@ import { ProductData } from "@/model/product-model";
 ChartJS.register(
   CategoryScale,
   LinearScale,
-  PointElement,
-  LineElement,
-  Filler,
+  BarElement,
   Tooltip,
   Legend,
 );
@@ -175,21 +171,16 @@ export function MachineActivityChart({ machineId, startDate, endDate }: Props) {
       return {
         label: statusLabel[status],
         data: hoursByStatus[status],
+        backgroundColor: withAlpha(color, 0.8),
         borderColor: color,
-        backgroundColor: withAlpha(color, 0.18),
-        fill: true,
-        tension: 0.35,
-        pointRadius: 3,
-        pointHoverRadius: 5,
-        pointBackgroundColor: color,
-        borderWidth: 2,
+        borderWidth: 1,
       };
     });
 
-    return { labels, datasets } as ChartData<"line">;
+    return { labels, datasets } as ChartData<"bar">;
   }, [dateRange, activityData?.data]);
 
-  const options: ChartOptions<"line"> = {
+  const options: ChartOptions<"bar"> = {
     responsive: true,
     maintainAspectRatio: false,
     interaction: { mode: "index", intersect: false },
@@ -221,6 +212,7 @@ export function MachineActivityChart({ machineId, startDate, endDate }: Props) {
     },
     scales: {
       x: {
+        stacked: false,
         ticks: { color: tickColor, autoSkip: true, maxRotation: 0 },
         grid: { color: gridColor },
         border: { color: gridColor },
@@ -292,7 +284,7 @@ export function MachineActivityChart({ machineId, startDate, endDate }: Props) {
         </Combobox>
       </div>
       <div className="h-70 w-full">
-        <Line data={data} options={options} />
+        <Bar data={data} options={options} />
       </div>
     </div>
   );

@@ -24,6 +24,7 @@ type Props = {
 };
 
 export function ProductUpdateModal({ product, open, onOpenChange, onSuccess }: Props) {
+  const isEdit = !!product;
   const [productNo, setProductNo] = useState(product?.productNo ?? "");
   const [partNo, setPartNo] = useState(product?.partNo ?? "");
   const [partName, setPartName] = useState(product?.partName ?? "");
@@ -31,16 +32,21 @@ export function ProductUpdateModal({ product, open, onOpenChange, onSuccess }: P
 
   const handleSubmit = async (e: { preventDefault: () => void }) => {
     e.preventDefault();
-    if (!product) return;
 
     setSubmitting(true);
     try {
-      await productService.update(product.id, { productNo, partNo, partName });
-      toast.success(`Product "${partName}" updated`);
+      if (isEdit && product) {
+        await productService.update(product.id, { productNo, partNo, partName });
+        toast.success(`Product "${partName}" updated`);
+      } else {
+        await productService.create({ productNo, partNo, partName });
+        toast.success(`Product "${partName}" created`);
+      }
+      
       onOpenChange(false);
       onSuccess();
     } catch (err) {
-      toast.error("Failed to update product");
+      toast.error(isEdit ? "Failed to update product" : "Failed to create product");
       console.error(err);
     } finally {
       setSubmitting(false);
@@ -51,9 +57,9 @@ export function ProductUpdateModal({ product, open, onOpenChange, onSuccess }: P
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Update Product</DialogTitle>
+          <DialogTitle>{isEdit ? "Update Product" : "Create Product"}</DialogTitle>
           <DialogDescription>
-            Edit product details and save changes.
+            {isEdit ? "Edit product details and save changes." : "Add a new product to the system."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
@@ -93,7 +99,10 @@ export function ProductUpdateModal({ product, open, onOpenChange, onSuccess }: P
               Cancel
             </Button>
             <Button type="submit" disabled={submitting}>
-              {submitting ? "Saving…" : "Save Changes"}
+              {submitting 
+                ? (isEdit ? "Saving…" : "Creating…") 
+                : (isEdit ? "Save Changes" : "Create Product")
+              }
             </Button>
           </DialogFooter>
         </form>

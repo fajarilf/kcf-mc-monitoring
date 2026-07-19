@@ -35,6 +35,7 @@ type Props = {
 const ROLES = ["admin", "operator", "viewer"];
 
 export function UserUpdateModal({ user, open, onOpenChange, onSuccess }: Props) {
+  const isEdit = !!user;
   const [name, setName] = useState(user?.name ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
   const [username, setUsername] = useState(user?.username ?? "");
@@ -46,33 +47,40 @@ export function UserUpdateModal({ user, open, onOpenChange, onSuccess }: Props) 
   const resolvedMachineId = machineData?.data?.find((m) => m.name === user?.machineName)?.id ?? null;
   const resolvedGroupId = groupData?.data?.find((g) => g.name === user?.groupName)?.id ?? null;
 
-  const [machineId, setMachineId] = useState<number | null>(resolvedMachineId);
-  const [groupId, setGroupId] = useState<number | null>(resolvedGroupId);
+  const [machineId, setMachineId] = useState<number | null>(isEdit ? resolvedMachineId : null);
+  const [groupId, setGroupId] = useState<number | null>(isEdit ? resolvedGroupId : null);
   const [submitting, setSubmitting] = useState(false);
 
   // Sync once data loads (component remounts on user change via key prop)
-  if (machineId === null && resolvedMachineId !== null) setMachineId(resolvedMachineId);
-  if (groupId === null && resolvedGroupId !== null) setGroupId(resolvedGroupId);
+  if (isEdit && machineId === null && resolvedMachineId !== null) setMachineId(resolvedMachineId);
+  if (isEdit && groupId === null && resolvedGroupId !== null) setGroupId(resolvedGroupId);
 
   const handleSubmit = async (e: { preventDefault: () => void }) => {
     e.preventDefault();
-    if (!user) return;
 
     setSubmitting(true);
     try {
-      await userService.update(user.id, {
+      const payload = {
         name,
         email: email || null,
         username: username || null,
         role: role || null,
         groupId: groupId ?? null,
         machineId: machineId ?? null,
-      });
-      toast.success(`User "${name}" updated`);
+      };
+
+      if (isEdit && user) {
+        await userService.update(user.id, payload);
+        toast.success(`User "${name}" updated`);
+      } else {
+        await userService.create(payload);
+        toast.success(`User "${name}" created`);
+      }
+      
       onOpenChange(false);
       onSuccess();
     } catch (err) {
-      toast.error("Failed to update user");
+      toast.error(isEdit ? "Failed to update user" : "Failed to create user");
       console.error(err);
     } finally {
       setSubmitting(false);
@@ -83,9 +91,9 @@ export function UserUpdateModal({ user, open, onOpenChange, onSuccess }: Props) 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Update User</DialogTitle>
+          <DialogTitle>{isEdit ? "Update User" : "Create User"}</DialogTitle>
           <DialogDescription>
-            Edit user details and save changes.
+            {isEdit ? "Edit user details and save changes." : "Add a new user to the system."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
@@ -179,7 +187,10 @@ export function UserUpdateModal({ user, open, onOpenChange, onSuccess }: Props) 
               Cancel
             </Button>
             <Button type="submit" disabled={submitting}>
-              {submitting ? "Saving…" : "Save Changes"}
+              {submitting 
+                ? (isEdit ? "Saving…" : "Creating…") 
+                : (isEdit ? "Save Changes" : "Create User")
+              }
             </Button>
           </DialogFooter>
         </form>

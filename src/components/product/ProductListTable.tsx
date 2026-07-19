@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -22,6 +22,7 @@ export function ProductListTable() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [editProduct, setEditProduct] = useState<ProductData | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
   const debouncedSearch = useDebouncedValue(search);
 
   // Reset to page 1 when search changes
@@ -55,13 +56,25 @@ export function ProductListTable() {
       onOpenChange={(open) => !open && setEditProduct(null)}
       onSuccess={() => refetch()}
     />
+    <ProductUpdateModal
+      product={null}
+      open={createOpen}
+      onOpenChange={setCreateOpen}
+      onSuccess={() => refetch()}
+    />
     <div className="flex flex-col gap-4">
-      <Input
-        placeholder="Search products..."
-        value={search}
-        onChange={handleSearchChange}
-        className="max-w-sm"
-      />
+      <div className="flex items-center gap-4">
+        <Input
+          placeholder="Search products..."
+          value={search}
+          onChange={handleSearchChange}
+          className="max-w-sm"
+        />
+        <Button onClick={() => setCreateOpen(true)}>
+          <Plus className="mr-2 size-4" />
+          Create Product
+        </Button>
+      </div>
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -69,6 +82,8 @@ export function ProductListTable() {
               <TableHead className="w-90.5">Product No</TableHead>
               <TableHead className="w-90.5">Part No</TableHead>
               <TableHead>Part Name</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead>RPM Value</TableHead>
               <TableHead className="w-90.5 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -76,7 +91,7 @@ export function ProductListTable() {
             {isLoading ? (
               <TableRow>
                 <TableCell
-                  colSpan={4}
+                  colSpan={6}
                   className="h-24 text-center text-muted-foreground"
                 >
                   Loading...
@@ -85,7 +100,7 @@ export function ProductListTable() {
             ) : !data?.data?.length ? (
               <TableRow>
                 <TableCell
-                  colSpan={4}
+                  colSpan={6}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No products found.
@@ -97,6 +112,8 @@ export function ProductListTable() {
                   <TableCell>{product.productNo}</TableCell>
                   <TableCell>{product.partNo}</TableCell>
                   <TableCell>{product.partName}</TableCell>
+                  <TableCell>{product.customer || "-"}</TableCell>
+                  <TableCell>{product.rpmValue ?? "-"}</TableCell>
                   <TableCell className="text-right">
                     <div className="inline-flex gap-2">
                       <Button

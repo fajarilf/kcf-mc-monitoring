@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Pencil, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -39,6 +39,7 @@ function getPageItems(current: number, total: number): (number | "gap")[] {
 export function UserTable() {
   const [page, setPage] = useState(1);
   const [editUser, setEditUser] = useState<UserData | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const params = useMemo<UserParams>(
     () => ({ page, limit: PAGE_SIZE, search: "", paginate: true }),
@@ -75,7 +76,20 @@ export function UserTable() {
       onOpenChange={(open) => !open && setEditUser(null)}
       onSuccess={() => refetch()}
     />
-    <div className="overflow-hidden rounded-xl border bg-card">
+    <UserUpdateModal
+      user={null}
+      open={createOpen}
+      onOpenChange={setCreateOpen}
+      onSuccess={() => refetch()}
+    />
+    <div className="flex flex-col gap-4">
+      <div className="flex justify-end">
+        <Button onClick={() => setCreateOpen(true)}>
+          <Plus className="mr-2 size-4" />
+          Create User
+        </Button>
+      </div>
+      <div className="overflow-hidden rounded-xl border bg-card">
       <Table className={cn("transition-opacity", busy && "opacity-60")}>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
@@ -211,6 +225,7 @@ export function UserTable() {
           </div>
         </div>
       )}
+    </div>
     </div>
     </>
   );

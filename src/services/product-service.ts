@@ -1,5 +1,5 @@
 import api from "@/lib/api";
-import { ProductParam, ProductResponse, ProductUpdatePayload } from "@/model/product-model";
+import { ProductCreatePayload, ProductParam, ProductResponse, ProductUpdatePayload } from "@/model/product-model";
 
 class ProductService {
 
@@ -12,6 +12,11 @@ class ProductService {
 
     async update(id: number, data: ProductUpdatePayload): Promise<ProductResponse> {
         const res = await api.put(`${this.base_url}/${id}`, data);
+        return res.data as ProductResponse;
+    }
+
+    async create(data: ProductCreatePayload): Promise<ProductResponse> {
+        const res = await api.post(this.base_url, data);
         return res.data as ProductResponse;
     }
 

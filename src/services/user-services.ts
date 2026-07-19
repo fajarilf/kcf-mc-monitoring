@@ -1,5 +1,5 @@
 import api from "@/lib/api"
-import { UserListResponse, UserParams, UserResponse, UserUpdatePayload } from "@/model/user-model";
+import { UserCreatePayload, UserListResponse, UserParams, UserResponse, UserUpdatePayload } from "@/model/user-model";
 
 class UserService {
     private base_url = "/users";
@@ -16,6 +16,11 @@ class UserService {
 
     async update(id: number, data: UserUpdatePayload): Promise<UserResponse> {
         const res = await api.put(`${this.base_url}/${id}`, data);
+        return res.data;
+    }
+
+    async create(data: UserCreatePayload): Promise<UserResponse> {
+        const res = await api.post(this.base_url, data);
         return res.data;
     }
 }

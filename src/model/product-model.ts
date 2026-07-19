@@ -6,10 +6,18 @@ export type ProductData = {
     productNo: string,
     partName: string,
     partNo: string,
-    createdAt?: Date
+    createdAt?: Date,
+    customer?: string,
+    rpmValue?: number | string,
 }
 
 export type ProductUpdatePayload = {
+    productNo: string,
+    partName: string,
+    partNo: string,
+}
+
+export type ProductCreatePayload = {
     productNo: string,
     partName: string,
     partNo: string,

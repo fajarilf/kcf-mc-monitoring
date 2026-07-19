@@ -25,3 +25,12 @@ export type UserUpdatePayload = {
     groupId?: number | null,
     machineId?: number | null,
 }
+
+export type UserCreatePayload = {
+    name: string,
+    email?: string | null,
+    username?: string | null,
+    role?: string | null,
+    groupId?: number | null,
+    machineId?: number | null,
+}
