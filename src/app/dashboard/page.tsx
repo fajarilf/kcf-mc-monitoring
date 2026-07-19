@@ -127,7 +127,7 @@ type MachineStatusDetail = {
 
 export default function DashboardPage() {
   const now = useNowTicker(1000);
-  const [viewMode, setViewMode] = useState<ViewMode>("12h");
+  const [viewMode, setViewMode] = useState<ViewMode>("24h");
 
   const dateRange = useMemo(() => {
     if (!now) return { startDate: undefined, endDate: undefined };
