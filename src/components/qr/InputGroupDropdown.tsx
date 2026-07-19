@@ -65,7 +65,7 @@ export function InputGroupDropdown({ onValueChange }: Props) {
                     value={user}
                     onValueChange={(data) => {
                         setUser(data);
-                        onValueChange(data?.name);
+                        onValueChange(`-${data?.name}`);
                     }}
                     onInputValueChange={(value) => setSearchUser(value)}
                     itemToStringLabel={(item: UserData) => item.name}
