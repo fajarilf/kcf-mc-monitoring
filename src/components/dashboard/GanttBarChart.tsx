@@ -47,7 +47,7 @@ export const GanttBarChart = memo(function GanttBarChart({
     : "rgba(255, 255, 255, 0.98)";
   const tooltipFg = isDark ? "rgb(241, 245, 249)" : "rgb(15, 23, 42)";
 
-  const height = useMemo(() => Math.max(260, rows.length * 48), [rows.length]);
+  const height = useMemo(() => Math.max(260, rows.length * 48) + 24, [rows.length]);
 
   const [hover, setHover] = useState<{
     label: string;
@@ -69,7 +69,7 @@ export const GanttBarChart = memo(function GanttBarChart({
 
   return (
     <div className="w-full">
-      <div className="mb-7 flex flex-wrap gap-4 text-xs">
+      <div className="mb-3 flex flex-wrap gap-4 text-xs">
         {[
           MACHINE_STATUS.OFF,
           MACHINE_STATUS.RUNNING,
@@ -86,7 +86,7 @@ export const GanttBarChart = memo(function GanttBarChart({
           </div>
         ))}
       </div>
-      <div style={{ height }} className="relative flex w-full select-none">
+      <div style={{ height }} className="relative flex w-full select-none pb-6">
         <div
           className="flex flex-col shrink-0 pr-2 text-right"
           style={{ color: tickColor, fontSize: 12 }}
@@ -117,7 +117,7 @@ export const GanttBarChart = memo(function GanttBarChart({
                 <span
                   className="absolute -translate-x-1/2 whitespace-nowrap"
                   style={{
-                    top: -20,
+                    bottom: -20,
                     left: 0,
                     color: tickColor,
                     fontSize: 12,
@@ -141,7 +141,7 @@ export const GanttBarChart = memo(function GanttBarChart({
                 return (
                   <div
                     key={si}
-                    className="absolute top-1 bottom-1 rounded-none cursor-default"
+                    className="absolute top-3 bottom-3 rounded-none cursor-default"
                     style={{
                       left: `${leftPct}%`,
                       width: `${widthPct}%`,
