@@ -68,8 +68,8 @@ export const GanttBarChart = memo(function GanttBarChart({
   }, [hover, formatClock, unitLabel]);
 
   return (
-    <div className="w-full mt-5">
-      <div className="mb-3 flex flex-wrap gap-4 text-xs">
+    <div className="w-full">
+      <div className="mb-7 flex flex-wrap gap-4 text-xs">
         {[
           MACHINE_STATUS.OFF,
           MACHINE_STATUS.RUNNING,
