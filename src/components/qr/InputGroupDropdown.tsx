@@ -1,7 +1,7 @@
 import { ChevronDownIcon } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { InputGroup, InputGroupAddon, InputGroupButton } from "../ui/input-group";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from "../ui/combobox";
 import { UserData } from "@/model/user-model";
 import { useUsersHook } from "@/hooks/use-user-hook";
@@ -26,6 +26,7 @@ const values: DropdownValue[] = [
 const DEFAULT_TYPE = values[0];
 
 export function InputGroupDropdown({ onValueChange }: Props) {
+    const inputRef = useRef<HTMLInputElement>(null);
     const [selectedType, setSelectedType] = useState<DropdownValue>(DEFAULT_TYPE);
     const [user, setUser] = useState<UserData | null>(null);
     const [product, setProduct] = useState<ProductData | null>(null);
@@ -66,11 +67,24 @@ export function InputGroupDropdown({ onValueChange }: Props) {
                     onValueChange={(data) => {
                         setUser(data);
                         onValueChange(`-${data?.name}`);
+                        if (data) setTimeout(() => inputRef.current?.blur(), 0);
                     }}
                     onInputValueChange={(value) => setSearchUser(value)}
                     itemToStringLabel={(item: UserData) => item.name}
                 >
-                    <ComboboxInput showTrigger={false} className="rounded-sm border-none flex-1" placeholder="Select an User"/>
+                    <ComboboxInput
+                        ref={inputRef}
+                        showTrigger={false}
+                        className="rounded-sm border-none flex-1"
+                        placeholder="Select an User"
+                        onFocus={() => {
+                            if (user) {
+                                setUser(null);
+                                setSearchUser(undefined);
+                                onValueChange(undefined);
+                            }
+                        }}
+                    />
                     <ComboboxContent>
                         <ComboboxEmpty>No User Found</ComboboxEmpty>
                         <ComboboxList>
@@ -89,11 +103,24 @@ export function InputGroupDropdown({ onValueChange }: Props) {
                     onValueChange={(data) => {
                         setProduct(data);
                         onValueChange(data ? `${data.partNo}: ${data.partName}` : undefined);
+                        if (data) setTimeout(() => inputRef.current?.blur(), 0);
                     }}
                     onInputValueChange={(value) => setSearchProduct(value)}
                     itemToStringLabel={(item: ProductData) => `${item.partNo}: ${item.partName}`}
                 >
-                    <ComboboxInput showTrigger={false} className="rounded-sm border-none flex-1" placeholder="Select a Product"/>
+                    <ComboboxInput
+                        ref={inputRef}
+                        showTrigger={false}
+                        className="rounded-sm border-none flex-1"
+                        placeholder="Select a Product"
+                        onFocus={() => {
+                            if (product) {
+                                setProduct(null);
+                                setSearchProduct(undefined);
+                                onValueChange(undefined);
+                            }
+                        }}
+                    />
                     <ComboboxContent>
                         <ComboboxEmpty>No Product Found</ComboboxEmpty>
                         <ComboboxList>
