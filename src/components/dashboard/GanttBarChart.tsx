@@ -1,6 +1,17 @@
 "use client";
 
 import { memo, useEffect, useMemo, useState } from "react";
+import {
+  Chart as ChartJS,
+  BarElement,
+  CategoryScale,
+  LinearScale,
+  Tooltip,
+  Legend,
+  type ChartOptions,
+  type ChartData,
+} from "chart.js";
+import { Bar } from "react-chartjs-2";
 import { useTheme } from "next-themes";
 import type { GanttRow } from "@/lib/mock-data";
 import {
@@ -9,6 +20,8 @@ import {
   statusLabel,
   withAlpha,
 } from "@/lib/status";
+
+ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
 interface Props {
   rows: GanttRow[];
@@ -19,6 +32,8 @@ interface Props {
   formatClock?: (unit: number) => string;
 }
 
+type FloatBar = [number, number] | null;
+
 export const GanttBarChart = memo(function GanttBarChart({
   rows,
   totalUnits,
@@ -27,15 +42,53 @@ export const GanttBarChart = memo(function GanttBarChart({
   formatTick,
   formatClock,
 }: Props) {
+  const { data, segLabelsByDataset } = useMemo(() => {
+    const labels = rows.map((r) => r.machineName);
+    const maxSegments = rows.reduce(
+      (m, r) => Math.max(m, r.segments.length),
+      0,
+    );
+
+    const segLabelsByDataset: string[][] = [];
+
+    const datasets = Array.from({ length: maxSegments }, (_, slot) => {
+      const slotData: FloatBar[] = rows.map((r) => {
+        const seg = r.segments[slot];
+        return seg ? [seg.start, seg.start + seg.duration] : null;
+      });
+      const backgroundColor = rows.map((r) => {
+        const seg = r.segments[slot];
+        return seg ? withAlpha(statusFillHex[seg.status], 0.70) : "rgba(0,0,0,0)";
+      });
+      segLabelsByDataset.push(
+        rows.map((r) => {
+          const seg = r.segments[slot];
+          return seg ? statusLabel[seg.status] : "";
+        }),
+      );
+      return {
+        label: `slot-${slot}`,
+        data: slotData as unknown as number[],
+        backgroundColor,
+        borderWidth: 0,
+        borderSkipped: false as const,
+        grouped: false,
+        barPercentage: 0.85,
+        categoryPercentage: 0.8,
+      };
+    });
+
+    return {
+      data: { labels, datasets } as ChartData<"bar">,
+      segLabelsByDataset,
+    };
+  }, [rows]);
+
   const stepSize = Math.max(1, Math.round(totalUnits / tickCount));
-  const ticks = useMemo(() => {
-    const arr: number[] = [];
-    for (let v = 0; v <= totalUnits; v += stepSize) arr.push(v);
-    return arr;
-  }, [totalUnits, stepSize]);
 
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  
   useEffect(() => setMounted(true), []);
   const isDark = mounted && resolvedTheme === "dark";
   const tickColor = isDark ? "rgb(203, 213, 225)" : "rgb(71, 85, 105)";
@@ -47,25 +100,61 @@ export const GanttBarChart = memo(function GanttBarChart({
     : "rgba(255, 255, 255, 0.98)";
   const tooltipFg = isDark ? "rgb(241, 245, 249)" : "rgb(15, 23, 42)";
 
+  const options: ChartOptions<"bar"> = useMemo(() => ({
+    indexAxis: "y",
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: tooltipBg,
+        titleColor: tooltipFg,
+        bodyColor: tooltipFg,
+        borderColor: gridColor,
+        borderWidth: 1,
+        padding: 10,
+        callbacks: {
+          title: () => "",
+          label: (ctx) => {
+            const raw = ctx.raw as FloatBar;
+            if (!raw) return "";
+            const machine = ctx.label;
+            const status =
+              segLabelsByDataset[ctx.datasetIndex]?.[ctx.dataIndex] ?? "";
+            const dur = (raw[1] - raw[0]).toFixed(1);
+            if (formatClock) {
+              return `${machine} • ${status} • ${formatClock(raw[0])} → ${formatClock(raw[1])} (${dur}${unitLabel})`;
+            }
+            return `${machine} • ${status} • ${dur}${unitLabel}`;
+          },
+        },
+      },
+    },
+    scales: {
+      x: {
+        min: 0,
+        max: totalUnits,
+        ticks: {
+          stepSize,
+          color: tickColor,
+          callback: (value) =>
+            formatTick ? formatTick(Number(value)) : `${value}${unitLabel}`,
+          autoSkip: false,
+          maxRotation: 0,
+        },
+        grid: { color: gridColor },
+        border: { color: gridColor },
+      },
+      y: {
+        grid: { display: false },
+        ticks: { autoSkip: false, color: tickColor },
+        border: { color: gridColor },
+      },
+    },
+  }), [tooltipBg, tooltipFg, gridColor, tickColor, totalUnits, stepSize, unitLabel, formatTick, formatClock, segLabelsByDataset]);
+
   const height = useMemo(() => Math.max(260, rows.length * 48), [rows.length]);
-
-  const [hover, setHover] = useState<{
-    label: string;
-    statusLabel: string;
-    start: number;
-    end: number;
-    x: number;
-    y: number;
-  } | null>(null);
-
-  const tooltipText = useMemo(() => {
-    if (!hover) return "";
-    const dur = (hover.end - hover.start).toFixed(1);
-    if (formatClock) {
-      return `${hover.label} • ${hover.statusLabel} • ${formatClock(hover.start)} → ${formatClock(hover.end)} (${dur}${unitLabel})`;
-    }
-    return `${hover.label} • ${hover.statusLabel} • ${dur}${unitLabel}`;
-  }, [hover, formatClock, unitLabel]);
 
   return (
     <div className="w-full">
@@ -86,107 +175,8 @@ export const GanttBarChart = memo(function GanttBarChart({
           </div>
         ))}
       </div>
-      <div style={{ height }} className="relative flex w-full select-none">
-        <div
-          className="flex flex-col shrink-0 pr-2 text-right"
-          style={{ color: tickColor, fontSize: 12 }}
-        >
-          {rows.map((r) => (
-            <div
-              key={r.machineId}
-              className="flex items-center"
-              style={{ height: 48 }}
-            >
-              {r.machineName}
-            </div>
-          ))}
-        </div>
-        <div className="relative flex-1">
-          {ticks.map((t) => {
-            const leftPct = (t / totalUnits) * 100;
-            return (
-              <div
-                key={t}
-                className="absolute top-0 bottom-0"
-                style={{
-                  left: `${leftPct}%`,
-                  width: 1,
-                  background: gridColor,
-                }}
-              >
-                <span
-                  className="absolute -translate-x-1/2 whitespace-nowrap"
-                  style={{
-                    top: -20,
-                    left: 0,
-                    color: tickColor,
-                    fontSize: 12,
-                  }}
-                >
-                  {formatTick ? formatTick(t) : `${t}${unitLabel}`}
-                </span>
-              </div>
-            );
-          })}
-          {rows.map((row) => (
-            <div
-              key={row.machineId}
-              className="relative"
-              style={{ height: 48 }}
-            >
-              {row.segments.map((seg, si) => {
-                const leftPct = (seg.start / totalUnits) * 100;
-                const widthPct = (seg.duration / totalUnits) * 100;
-                const bgColor = withAlpha(statusFillHex[seg.status], 0.7);
-                return (
-                  <div
-                    key={si}
-                    className="absolute top-1 bottom-1 rounded-sm cursor-default"
-                    style={{
-                      left: `${leftPct}%`,
-                      width: `${widthPct}%`,
-                      backgroundColor: bgColor,
-                    }}
-                    onMouseEnter={(e) => {
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      const container = e.currentTarget
-                        .closest(".relative.flex.w-full")!
-                        .getBoundingClientRect();
-                      setHover({
-                        label: row.machineName,
-                        statusLabel: statusLabel[seg.status],
-                        start: seg.start,
-                        end: seg.start + seg.duration,
-                        x: rect.left - container.left,
-                        y: rect.top - container.top,
-                      });
-                    }}
-                    onMouseLeave={() => setHover(null)}
-                  >
-                    <div
-                      className="invisible absolute inset-0 rounded-sm ring-1 ring-white/20 group-hover:visible"
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-          {hover && (
-            <div
-              className="pointer-events-none absolute z-50 rounded-md border px-3 py-2 text-xs shadow-md whitespace-nowrap"
-              style={{
-                left: hover.x,
-                top: hover.y - 8,
-                transform: "translate(-50%, -100%)",
-                backgroundColor: tooltipBg,
-                color: tooltipFg,
-                borderColor: gridColor,
-              }}
-            >
-              {tooltipText}
-            </div>
-          )}
-        </div>
+      <div style={{ height }}>
+        <Bar data={data} options={options} />
       </div>
     </div>
   );
