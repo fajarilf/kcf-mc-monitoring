@@ -349,7 +349,7 @@ export default function MachineDetailPage() {
           <Metric
             icon={<Hash className="size-4" />}
             label="Products"
-            value={machineInfo?.counter_product.toLocaleString() || "-"}
+            value={machineInfo?.counter_product.toLocaleString() ?? "-"}
             mono
           />
           <div className="rounded-lg border border-border/50 bg-muted/40 p-3">
