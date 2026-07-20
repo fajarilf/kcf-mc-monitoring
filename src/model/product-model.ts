@@ -8,7 +8,7 @@ export type ProductData = {
     partNo: string,
     createdAt?: Date,
     customer?: string,
-    rpmValue?: number | string,
+    rpm?: number | string,
 }
 
 export type ProductUpdatePayload = {

@@ -139,10 +139,12 @@ export default function DashboardPage() {
     };
   }, [now, viewMode]);
 
-  const { data: timelineData, isLoading: timelineLoading, refetch } = useStatusTimelineHook({
+  const timelineParams = useMemo(() => ({
     startDate: dateRange.startDate,
     endDate: dateRange.endDate,
-  });
+  }), [dateRange.startDate, dateRange.endDate]);
+
+  const { data: timelineData, isLoading: timelineLoading, refetch } = useStatusTimelineHook(timelineParams);
 
   const { data: machineData, isLoading: machineLoading } = useMachineHook();
 

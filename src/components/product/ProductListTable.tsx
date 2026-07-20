@@ -113,7 +113,7 @@ export function ProductListTable() {
                   <TableCell>{product.partNo}</TableCell>
                   <TableCell>{product.partName}</TableCell>
                   <TableCell>{product.customer || "-"}</TableCell>
-                  <TableCell>{product.rpmValue ?? "-"}</TableCell>
+                  <TableCell>{product.rpm ?? "-"}</TableCell>
                   <TableCell className="text-right">
                     <div className="inline-flex gap-2">
                       <Button
