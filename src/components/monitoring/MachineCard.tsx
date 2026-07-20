@@ -123,10 +123,10 @@ export function MachineCard({ machine }: { machine: MachineData }) {
       </CardHeader>
       <CardContent className="relative flex flex-1 flex-col gap-4 pl-5">
         <div className="flex-row gap-4 text-sm">
-          <div className="flex-row items-center gap-2 text-muted-foreground">
+          <div className="flex-row items-center gap-2 text-muted-foreground mb-2">
             <span className="flex gap-2 font-bold items-center">
               <Package className="size-4 shrink-0" /> 
-              Work Name
+              Part No
             </span>
             <span className="truncate ml-6">
               <span className="text-foreground py-1 px-2">
@@ -137,7 +137,7 @@ export function MachineCard({ machine }: { machine: MachineData }) {
           <div className="flex-row items-center gap-2 text-muted-foreground">
             <span className="flex gap-2 font-bold items-center">
               <User className="size-4 shrink-0" /> 
-              Worker / Operator
+              Operator
             </span>
             <span className="truncate ml-6">
               <span className="text-foreground py-1 px-2">
