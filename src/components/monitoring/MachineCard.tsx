@@ -69,7 +69,7 @@ export function MachineCard({ machine }: { machine: MachineData }) {
     if (data?.Machine) {
       const { OPERATORNAME, WORKNAME, PRODUCTCOUNTER, TIMECOUNTER, STATUS } = data.Machine;
       setCardDetail({
-        operator: OPERATORNAME,
+        operator: OPERATORNAME?.replace(/^-+|-+$/g, ""),
         product: WORKNAME,
         counter_product: PRODUCTCOUNTER,
         timer_elapsed: TIMECOUNTER,
