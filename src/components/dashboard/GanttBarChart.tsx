@@ -68,7 +68,7 @@ export const GanttBarChart = memo(function GanttBarChart({
   }, [hover, formatClock, unitLabel]);
 
   return (
-    <div className="w-full">
+    <div className="w-full mt-5">
       <div className="mb-3 flex flex-wrap gap-4 text-xs">
         {[
           MACHINE_STATUS.OFF,
@@ -79,7 +79,7 @@ export const GanttBarChart = memo(function GanttBarChart({
         ].map((s) => (
           <div key={s} className="flex items-center gap-2">
             <span
-              className="inline-block size-3 rounded-sm"
+              className="inline-block size-3 rounded-none"
               style={{ backgroundColor: statusFillHex[s] }}
             />
             <span className="text-muted-foreground">{statusLabel[s]}</span>
@@ -141,7 +141,7 @@ export const GanttBarChart = memo(function GanttBarChart({
                 return (
                   <div
                     key={si}
-                    className="absolute top-1 bottom-1 rounded-sm cursor-default"
+                    className="absolute top-1 bottom-1 rounded-none cursor-default"
                     style={{
                       left: `${leftPct}%`,
                       width: `${widthPct}%`,
@@ -164,7 +164,7 @@ export const GanttBarChart = memo(function GanttBarChart({
                     onMouseLeave={() => setHover(null)}
                   >
                     <div
-                      className="invisible absolute inset-0 rounded-sm ring-1 ring-white/20 group-hover:visible"
+                      className="invisible absolute inset-0 rounded-none ring-1 ring-white/20 group-hover:visible"
                     />
                   </div>
                 );
