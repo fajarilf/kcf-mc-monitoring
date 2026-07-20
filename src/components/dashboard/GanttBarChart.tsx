@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import {
   Chart as ChartJS,
   BarElement,
@@ -34,7 +34,7 @@ interface Props {
 
 type FloatBar = [number, number] | null;
 
-export function GanttBarChart({
+export const GanttBarChart = memo(function GanttBarChart({
   rows,
   totalUnits,
   unitLabel,
@@ -88,7 +88,7 @@ export function GanttBarChart({
 
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  // eslint-disable-next-line react-hooks/set-state-in-effect
+  
   useEffect(() => setMounted(true), []);
   const isDark = mounted && resolvedTheme === "dark";
   const tickColor = isDark ? "rgb(203, 213, 225)" : "rgb(71, 85, 105)";
@@ -100,7 +100,7 @@ export function GanttBarChart({
     : "rgba(255, 255, 255, 0.98)";
   const tooltipFg = isDark ? "rgb(241, 245, 249)" : "rgb(15, 23, 42)";
 
-  const options: ChartOptions<"bar"> = {
+  const options: ChartOptions<"bar"> = useMemo(() => ({
     indexAxis: "y",
     responsive: true,
     maintainAspectRatio: false,
@@ -152,9 +152,9 @@ export function GanttBarChart({
         border: { color: gridColor },
       },
     },
-  };
+  }), [tooltipBg, tooltipFg, gridColor, tickColor, totalUnits, stepSize, unitLabel, formatTick, formatClock, segLabelsByDataset]);
 
-  const height = Math.max(260, rows.length * 48);
+  const height = useMemo(() => Math.max(260, rows.length * 48), [rows.length]);
 
   return (
     <div className="w-full">
@@ -180,4 +180,4 @@ export function GanttBarChart({
       </div>
     </div>
   );
-}
+});

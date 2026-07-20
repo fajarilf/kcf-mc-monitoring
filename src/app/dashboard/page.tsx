@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Activity, Clock, PowerOff, Wrench, XCircle } from "lucide-react";
 import {
   Card,
@@ -87,19 +87,22 @@ function toGanttRows(
 ): GanttRow[] {
   const windowEndMs = windowStartMs + windowHours * MS_PER_HOUR;
 
-  // Order rows deterministically by machine id so the y-axis doesn't flip
-  // when the machine API returns rows in a different order than the timeline.
+  // Pre-index timelines by machineId for O(1) lookup.
+  const timelineById = new Map<string, MachineTimeline>();
+  for (const m of data) {
+    timelineById.set(String(m.machineId), m);
+  }
+
   const result: GanttRow[] = [];
 
   for (const machine of machineList) {
-    const machineId =  String(machine.id);
+    const machineId = String(machine.id);
     const machineName = machine.name.toUpperCase();
-    const machineTimeline = data.find((m) => String(m.machineId) === machineId)
+    const machineTimeline = timelineById.get(machineId);
     const segment = machineTimeline?.timeline
       .map((seg) => {
         const segStartMs = new Date(seg.start).getTime();
         const segEndMs = seg.end ? new Date(seg.end).getTime() : nowMs;
-        // Clamp to the visible 12h shift window, then express in hours from its start.
         const startMs = Math.max(windowStartMs, Math.min(windowEndMs, segStartMs));
         const endMs = Math.max(windowStartMs, Math.min(windowEndMs, segEndMs));
         const start = (startMs - windowStartMs) / MS_PER_HOUR;
@@ -110,11 +113,9 @@ function toGanttRows(
           duration: end - start,
         };
       })
-      // Drop segments that fall entirely outside the visible window — after
-      // clamping they collapse to zero duration and would draw a stray bar.
-      .filter((seg) => seg.duration > 0)
+      .filter((seg) => seg.duration > 0);
 
-    result.push({machineId, machineName, segments: segment ?? []})
+    result.push({ machineId, machineName, segments: segment ?? [] });
   }
 
   return result;
@@ -128,6 +129,10 @@ type MachineStatusDetail = {
 export default function DashboardPage() {
   const now = useNowTicker(1000);
   const [viewMode, setViewMode] = useState<ViewMode>("24h");
+
+  // Bucket time to 30s intervals so the chart data doesn't rebuild every second.
+  // The 1s ticker is only needed for the query date range (which is day-granular).
+  const chartNow = useMemo(() => now === null ? null : Math.floor(now / 30_000) * 30_000, [now]);
 
   const dateRange = useMemo(() => {
     if (!now) return { startDate: undefined, endDate: undefined };
@@ -191,14 +196,14 @@ export default function DashboardPage() {
   }, [machines]);
 
   const shift = useMemo(
-    () => (now === null ? null : getShiftWindow(now, viewMode)),
-    [now, viewMode],
+    () => (chartNow === null ? null : getShiftWindow(chartNow, viewMode)),
+    [chartNow, viewMode],
   );
 
   const rows = useMemo<GanttRow[]>(() => {
-    if (now === null || shift === null) return [];
+    if (chartNow === null || shift === null) return [];
     if (timelineData?.data && timelineData.data.length > 0) {
-      return toGanttRows(timelineData.data, machineData?.data ?? [], now, shift.startMs, shift.hours);
+      return toGanttRows(timelineData.data, machineData?.data ?? [], chartNow, shift.startMs, shift.hours);
     }
     // No timeline yet — still render the chart with machines on the y-axis and
     // the time axis, just without any status segments.
@@ -209,7 +214,17 @@ export default function DashboardPage() {
         machineName: m.name.toUpperCase(),
         segments: [],
       }));
-  }, [timelineData, machineData, now, shift]);
+  }, [timelineData, machineData, chartNow, shift]);
+
+  const startHour = shift?.startHour ?? 0;
+  const handleFormatTick = useCallback(
+    (h: number) => formatClock(startHour + h, false),
+    [startHour],
+  );
+  const handleFormatClock = useCallback(
+    (h: number) => formatClock(startHour + h),
+    [startHour],
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -267,8 +282,8 @@ export default function DashboardPage() {
               totalUnits={shift?.hours ?? 12}
               unitLabel="h"
               tickCount={viewMode === "24h" ? 12 : TICKS}
-              formatTick={(h) => formatClock((shift?.startHour ?? 0) + h, false)}
-              formatClock={(h) => formatClock((shift?.startHour ?? 0) + h)}
+              formatTick={handleFormatTick}
+              formatClock={handleFormatClock}
             />
           )}
         </CardContent>
