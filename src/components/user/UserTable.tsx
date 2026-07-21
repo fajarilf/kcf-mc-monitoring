@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -12,9 +13,13 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { cn } from "@/lib/utils";
+import { useDebouncedValue } from "@/hooks/use-debounce";
 import { useUsersHook } from "@/hooks/use-user-hook";
+import { userService } from "@/services/user-services";
 import { UserUpdateModal } from "./UserUpdateModal";
 import type { UserData, UserParams } from "@/model/user-model";
 
@@ -37,13 +42,22 @@ function getPageItems(current: number, total: number): (number | "gap")[] {
 }
 
 export function UserTable() {
+  const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [editUser, setEditUser] = useState<UserData | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<UserData | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const debouncedSearch = useDebouncedValue(search);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+    setPage(1);
+  };
 
   const params = useMemo<UserParams>(
-    () => ({ page, limit: PAGE_SIZE, search: "", paginate: true }),
-    [page],
+    () => ({ page, limit: PAGE_SIZE, search: debouncedSearch, paginate: true }),
+    [page, debouncedSearch],
   );
 
   const { data, isLoading, isFetching, isError, error, refetch } = useUsersHook(params);
@@ -63,8 +77,23 @@ export function UserTable() {
   }
 
   function handleDelete(user: UserData) {
-    // TODO: wire up the delete action (confirm + call API).
-    console.log("delete user", user.id);
+    setDeleteTarget(user);
+  }
+
+  async function handleConfirmDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await userService.delete(deleteTarget.id);
+      toast.success(`User "${deleteTarget.name}" deleted`);
+      setDeleteTarget(null);
+      refetch();
+    } catch (err) {
+      toast.error("Failed to delete user");
+      console.error(err);
+    } finally {
+      setDeleting(false);
+    }
   }
 
   return (
@@ -82,8 +111,22 @@ export function UserTable() {
       onOpenChange={setCreateOpen}
       onSuccess={() => refetch()}
     />
+    <ConfirmDialog
+      open={!!deleteTarget}
+      onOpenChange={(open) => !open && setDeleteTarget(null)}
+      title="Delete user?"
+      description={deleteTarget ? `"${deleteTarget.name}" will be permanently deleted.` : ""}
+      loading={deleting}
+      onConfirm={handleConfirmDelete}
+    />
     <div className="flex flex-col gap-4">
-      <div className="flex justify-end">
+      <div className="flex items-center gap-4">
+        <Input
+          placeholder="Search users..."
+          value={search}
+          onChange={handleSearchChange}
+          className="max-w-sm"
+        />
         <Button onClick={() => setCreateOpen(true)}>
           <Plus className="mr-2 size-4" />
           Create User
