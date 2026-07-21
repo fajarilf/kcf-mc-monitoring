@@ -146,39 +146,26 @@ export function replacePlaceholders(
 }
 
 /**
- * Fill the "Rekap Selesai Produksi" template.
- *
- * @param templateBuffer  the .xlsx file loaded from disk/S3/etc
- * @param data            see FillTemplateData
- * @returns               an xlsx file as an ExcelJS-produced Buffer/ArrayBuffer
+ * Fill a single worksheet with the given data.
+ * The worksheet must be a fresh copy of the template (with {{Placeholder}} values intact).
  */
-export async function fillTemplate(
-  templateBuffer: ExcelJS.Buffer | Buffer,
-  data: FillTemplateData,
-): Promise<ExcelJS.Buffer> {
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(templateBuffer as ExcelJS.Buffer);
-  const ws = workbook.getWorksheet('Sheet1');
-  if (!ws) throw new Error('Sheet1 not found in template');
-
-  // --- 1. figure out how many rows already exist for each repeating block ---
-  const DANDORI_TEMPLATE_ROW = 14;   // only 1 slot pre-built
-  const PRODUCTION_FIRST_ROW = 18;   // has its own (wider) column layout
-  const PRODUCTION_REPEAT_ROW = 19;  // rows 19-27 share this narrower/merged layout
+function fillWorksheet(ws: Worksheet, data: FillTemplateData): void {
+  const DANDORI_TEMPLATE_ROW = 14;
+  const PRODUCTION_FIRST_ROW = 18;
+  const PRODUCTION_REPEAT_ROW = 19;
   const PRODUCTION_LAST_PREBUILT = 27;
-  let totalRow = 28;                 // will shift if we insert rows
+  let totalRow = 28;
 
   const dandori: DandoriEntry[] = data.dandori ?? [];
   const production: ProductionEntry[] = data.production ?? [];
 
-  // --- 2. expand DANDORI block if more than 1 row of data ---
+  // expand DANDORI block if more than 1 row of data
   if (dandori.length > 1) {
     const extra = dandori.length - 1;
     insertRepeatingRows(ws, DANDORI_TEMPLATE_ROW, extra);
-    totalRow += extra; // everything below shifted down
+    totalRow += extra;
   }
 
-  // fill dandori rows (row 14, 15, 16... depending on how many were inserted)
   dandori.forEach((item, i) => {
     const r = DANDORI_TEMPLATE_ROW + i;
     ws.getCell(`B${r}`).value = item.DandoriDate ?? '';
@@ -189,15 +176,14 @@ export async function fillTemplate(
     ws.getCell(`N${r}`).value = 'Mnt';
   });
 
-  // --- 3. expand PRODUCTION block if more rows than pre-built capacity ---
-  const prebuiltCapacity = PRODUCTION_LAST_PREBUILT - PRODUCTION_FIRST_ROW + 1; // 10
+  // expand PRODUCTION block if more rows than pre-built capacity
+  const prebuiltCapacity = PRODUCTION_LAST_PREBUILT - PRODUCTION_FIRST_ROW + 1;
   const dandoriShift = dandori.length > 1 ? dandori.length - 1 : 0;
   const productionRepeatRowAfterShift = PRODUCTION_REPEAT_ROW + dandoriShift;
   const lastPrebuiltAfterShift = PRODUCTION_LAST_PREBUILT + dandoriShift;
 
   if (production.length > prebuiltCapacity) {
     const extra = production.length - prebuiltCapacity;
-    // clone from the LAST pre-built repeat row, not row 18, since 19-27 share one layout
     insertRepeatingRows(ws, lastPrebuiltAfterShift, extra);
     totalRow += extra;
   }
@@ -218,8 +204,116 @@ export async function fillTemplate(
   ws.getCell(`J${totalRow}`).value = data.totalProduction ?? '';
   ws.getCell(`N${totalRow}`).value = 'Mnt';
 
-  // --- 4. simple header placeholders (Date, Customer, PartNo, etc.) ---
   replacePlaceholders(ws, data.header ?? {});
+}
+
+/**
+ * Deep-clone a worksheet within the same workbook.
+ * Copies column widths, row heights, cell values, cell styles, and merged ranges.
+ */
+function cloneWorksheet(
+  workbook: ExcelJS.Workbook,
+  source: Worksheet,
+  name: string,
+): Worksheet {
+  const target = workbook.addWorksheet(name, {
+    views: JSON.parse(JSON.stringify(source.views)),
+    properties: JSON.parse(JSON.stringify(source.properties)),
+    pageSetup: JSON.parse(JSON.stringify(source.pageSetup)),
+  });
+
+  // Copy column widths
+  source.columns.forEach((col, i) => {
+    if (col.width) target.getColumn(i + 1).width = col.width;
+  });
+
+  // Copy rows, cells, values, styles
+  source.eachRow({ includeEmpty: true }, (row, rowNumber) => {
+    const newRow = target.getRow(rowNumber);
+    newRow.height = row.height;
+    row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+      const newCell = newRow.getCell(colNumber);
+      newCell.value = cell.value;
+      newCell.style = { ...cell.style };
+    });
+  });
+
+  // Copy merged ranges
+  const merges = source.model.merges as string[];
+  if (merges) {
+    merges.forEach((range) => {
+      try {
+        target.mergeCells(range);
+      } catch {
+        // ignore merge errors (some may be auto-created by exceljs)
+      }
+    });
+  }
+
+  return target;
+}
+
+/**
+ * Fill the "Rekap Selesai Produksi" template with a single data set.
+ *
+ * @param templateBuffer  the .xlsx file loaded from disk/S3/etc
+ * @param data            see FillTemplateData
+ * @returns               an xlsx file as an ExcelJS-produced Buffer/ArrayBuffer
+ */
+export async function fillTemplate(
+  templateBuffer: ExcelJS.Buffer | Buffer,
+  data: FillTemplateData,
+): Promise<ExcelJS.Buffer> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(templateBuffer as ExcelJS.Buffer);
+  const ws = workbook.getWorksheet('Sheet1');
+  if (!ws) throw new Error('Sheet1 not found in template');
+
+  fillWorksheet(ws, data);
+
+  return workbook.xlsx.writeBuffer();
+}
+
+/**
+ * Fill the template with multiple data sets, one sheet per product.
+ *
+ * @param templateBuffer  the .xlsx file loaded from disk/S3/etc
+ * @param dataItems       array of FillTemplateData (one per product)
+ * @returns               a single xlsx with one sheet per product
+ */
+export async function fillTemplateMulti(
+  templateBuffer: ExcelJS.Buffer | Buffer,
+  dataItems: FillTemplateData[],
+): Promise<ExcelJS.Buffer> {
+  if (dataItems.length === 0) throw new Error('No data to export');
+
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(templateBuffer as ExcelJS.Buffer);
+  const templateWs = workbook.getWorksheet('Sheet1');
+  if (!templateWs) throw new Error('Sheet1 not found in template');
+
+  if (dataItems.length === 1) {
+    // Single product — fill the existing Sheet1 directly
+    fillWorksheet(templateWs, dataItems[0]);
+    templateWs.name = dataItems[0].header.PartNo || 'Report';
+    return workbook.xlsx.writeBuffer();
+  }
+
+  // Multiple products — clone the template sheet for each product
+  // First, create N-1 clones from the unfilled template
+  const sheets: Worksheet[] = [templateWs];
+  for (let i = 1; i < dataItems.length; i++) {
+    const sheetName = dataItems[i].header.PartNo || `Product ${i + 1}`;
+    sheets.push(cloneWorksheet(workbook, templateWs, sheetName));
+  }
+
+  // Rename the first sheet
+  templateWs.name = dataItems[0].header.PartNo || 'Report';
+
+  // Now fill each sheet with its product's data
+  for (let i = 0; i < dataItems.length; i++) {
+    fillWorksheet(sheets[i], dataItems[i]);
+  }
 
   return workbook.xlsx.writeBuffer();
 }

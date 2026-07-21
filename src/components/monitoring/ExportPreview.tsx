@@ -3,7 +3,7 @@
 import { FillTemplateData } from "@/lib/template/fill-template";
 
 interface Props {
-  data: FillTemplateData;
+  data: FillTemplateData[];
 }
 
 /**
@@ -70,16 +70,11 @@ function SheetGrid({
   );
 }
 
-export function ExportPreview({ data }: Props) {
+function ReportSection({ data }: { data: FillTemplateData }) {
   const { header, dandori, production, totalProduction } = data;
 
   return (
-    <div className="flex flex-col gap-6 p-6 text-foreground bg-white">
-      {/* B2:N2 */}
-      <h2 className="text-center text-lg font-bold tracking-tight">
-        PRESENTASI PRODUKTIVITAS KERJA
-      </h2>
-
+    <div className="flex flex-col gap-6">
       {/* Header info block: excel rows 4, 6-11 -> grid rows 1-7 */}
       <SheetGrid rows={7}>
         {/* row 4 */}
@@ -212,30 +207,30 @@ export function ExportPreview({ data }: Props) {
           production.map((entry, i) => {
             const r = 3 + i;
             return (
-                <div key={i} style={{ display: "contents" }}>
-                  <Box col={1} colSpan={4} row={r} center>
-                    {entry.ProductionDate}
-                  </Box>
-                  <Box col={5} row={r} center>
-                    {entry.ProductionStart}
-                  </Box>
-                  <Box col={6} row={r} center>
-                    ~
-                  </Box>
-                  <Box col={7} colSpan={2} row={r} center>
-                    {entry.ProductionEnd}
-                  </Box>
-                  <Box col={9} colSpan={2} row={r} center>
-                    {entry.ProductionDuration}
-                  </Box>
-                  <Box col={11} row={r} center muted>
-                    Mnt
-                  </Box>
-                  <Box col={12} colSpan={2} row={r} center>
-                    {entry.ProductionPIC}
-                  </Box>
-                </div>
-              );
+              <div key={i} style={{ display: "contents" }}>
+                <Box col={1} colSpan={4} row={r} center>
+                  {entry.ProductionDate}
+                </Box>
+                <Box col={5} row={r} center>
+                  {entry.ProductionStart}
+                </Box>
+                <Box col={6} row={r} center>
+                  ~
+                </Box>
+                <Box col={7} colSpan={2} row={r} center>
+                  {entry.ProductionEnd}
+                </Box>
+                <Box col={9} colSpan={2} row={r} center>
+                  {entry.ProductionDuration}
+                </Box>
+                <Box col={11} row={r} center muted>
+                  Mnt
+                </Box>
+                <Box col={12} colSpan={2} row={r} center>
+                  {entry.ProductionPIC}
+                </Box>
+              </div>
+            );
           })
         )}
 
@@ -267,6 +262,32 @@ export function ExportPreview({ data }: Props) {
           Mnt
         </Box>
       </SheetGrid>
+    </div>
+  );
+}
+
+export function ExportPreview({ data }: Props) {
+  return (
+    <div className="flex flex-col gap-6 p-6 text-foreground bg-white">
+      {/* B2:N2 */}
+      <h2 className="text-center text-lg font-bold tracking-tight">
+        PRESENTASI PRODUKTIVITAS KERJA
+      </h2>
+
+      {data.map((item, i) => (
+        <div key={i} className="flex flex-col gap-6">
+          {data.length > 1 && (
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1 bg-slate-300" />
+              <span className="text-sm font-semibold text-slate-500">
+                {item.header.PartNo} — {item.header.PartName}
+              </span>
+              <div className="h-px flex-1 bg-slate-300" />
+            </div>
+          )}
+          <ReportSection data={item} />
+        </div>
+      ))}
     </div>
   );
 }

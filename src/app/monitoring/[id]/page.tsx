@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Download, Hash, Loader2, Package, User as UserIcon, X, FileChartLineIcon } from "lucide-react";
@@ -45,6 +45,10 @@ import { MqttResponses } from "@/types/mqtt-responses";
 import { MachineDetailSkeleton } from "@/components/monitoring/Skeleton";
 import { ExportPreview } from "@/components/monitoring/ExportPreview";
 import { FillTemplateData } from "@/lib/template/fill-template";
+import { useStatusTimelineByIdHook } from "@/hooks/use-status-hook";
+import { useProductHook } from "@/hooks/use-product";
+import type { TimelineSegment } from "@/model/status-model";
+import type { ProductData } from "@/model/product-model";
 
 const accentBar: Record<MACHINE_STATUS, string> = {
   [MACHINE_STATUS.OFF]: "bg-black",
@@ -76,11 +80,22 @@ export default function MachineDetailPage() {
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     return new Date().toISOString().split("T")[0];
   });
+
+  const timelineParams = useMemo(
+    () => ({ startDate: selectedDate, endDate: selectedDate }),
+    [selectedDate],
+  );
+  const { data: timelineData } = useStatusTimelineByIdHook(
+    Number(machineId),
+    timelineParams,
+  );
+  const { data: productData } = useProductHook();
+
   const [seconds, setSeconds] = useState(0);
 
   // Excel preview dialog state
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewData, setPreviewData] = useState<FillTemplateData | null>(null);
+  const [previewData, setPreviewData] = useState<FillTemplateData[] | null>(null);
   const [downloadLoading, setDownloadLoading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
@@ -122,78 +137,112 @@ export default function MachineDetailPage() {
     }
   }
 
-  function buildRequestBody(): FillTemplateData {
-    const now = new Date();
-    const dateStr = now.toISOString().split('T')[0];
-    const timeStr = now.toTimeString().split(' ')[0];
+  function toDateString(iso: string): string {
+    return iso.slice(0, 10);
+  }
+
+  function toTimeString(iso: string): string {
+    return iso.slice(11, 16);
+  }
+
+  function durationMinutes(startIso: string, endIso: string | null): number {
+    const start = new Date(startIso).getTime();
+    const end = endIso ? new Date(endIso).getTime() : Date.now();
+    return Math.round((end - start) / 60_000);
+  }
+
+  function buildRequestBodies(): FillTemplateData[] {
+    const segments: TimelineSegment[] = timelineData?.data?.timeline ?? [];
+    if (segments.length === 0) return [];
 
     const machineName = machine?.name ?? "";
     const TotalCounterProduct = 381534;
     const SumofBottom = 386100;
     const Result = ((TotalCounterProduct / SumofBottom) * 100).toFixed(2);
 
-    return {
-      header: {
-        Date: dateStr,
-        PartNo: "ABC-123",
-        PartName: "Obeng",
-        Operators: "Agung, Ilham, Yudha",
-        MachineName: machineName,
-        Input: "60",
-        TotalCounterProduct: TotalCounterProduct.toString(),
-        SumofBottom: SumofBottom.toString(),
-        Result: Result.toString()
-      },
-      dandori: [
-        {
-          DandoriDate: dateStr,
-          DandoriStart: timeStr,
-          DandoriEnd: timeStr,
-          DandoriDuration: 0
+    // All DANDORI segments (shared across every product section)
+    const dandoriSegments = segments.filter(
+      (s) => s.status === MACHINE_STATUS.DANDORI,
+    );
+    const dandoriEntries = dandoriSegments.map((seg) => ({
+      DandoriDate: toDateString(seg.start),
+      DandoriStart: toTimeString(seg.start),
+      DandoriEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
+      DandoriDuration: durationMinutes(seg.start, seg.end),
+    }));
+
+    // Group RUNNING segments by productPartNo
+    const runningByProduct = new Map<string, TimelineSegment[]>();
+    for (const seg of segments) {
+      if (seg.status === MACHINE_STATUS.RUNNING) {
+        const key = seg.productPartNo || "-"; // use "-" for unknown product
+        if (!runningByProduct.has(key)) runningByProduct.set(key, []);
+        runningByProduct.get(key)!.push(seg);
+      }
+    }
+
+    // Build one FillTemplateData per product
+    const result: FillTemplateData[] = [];
+    const products: ProductData[] = productData?.data ?? [];
+
+    for (const [partNo, runningSegments] of runningByProduct) {
+      // Look up product master data for customer/rpm
+      const product = products.find((p) => p.partNo === partNo);
+
+      // Get distinct operators from this product's running segments
+      const operators = [
+        ...new Set(
+          runningSegments
+            .map((s) => s.userName)
+            .filter((name): name is string => !!name),
+        ),
+      ];
+
+      // Build production entries
+      const productionEntries = runningSegments.map((seg) => ({
+        ProductionDate: toDateString(seg.start),
+        ProductionStart: toTimeString(seg.start),
+        ProductionEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
+        ProductionDuration: durationMinutes(seg.start, seg.end),
+        ProductionPIC: seg.userName || "-",
+      }));
+
+      const totalProduction = productionEntries.reduce(
+        (sum, p) => sum + p.ProductionDuration,
+        0,
+      );
+
+      result.push({
+        header: {
+          Date: selectedDate,
+          PartNo: partNo === "-" ? (product?.partNo ?? runningSegments[0]?.productPartNo ?? "-") : partNo,
+          PartName: product?.partName ?? runningSegments[0]?.productPartName ?? "-",
+          Customer: product?.customer ?? "-",
+          Operators: operators.join(", ") || "-",
+          MachineName: machineName,
+          Rpm: product?.rpm?.toString() ?? "60",
+          TotalCounterProduct: TotalCounterProduct.toString(),
+          SumofBottom: SumofBottom.toString(),
+          Result: Result.toString(),
         },
-        {
-          DandoriDate: dateStr,
-          DandoriStart: timeStr,
-          DandoriEnd: timeStr,
-          DandoriDuration: 0
-        },
-      ],
-      production: [
-        {
-          ProductionDate: dateStr,
-          ProductionStart: timeStr,
-          ProductionEnd: timeStr,
-          ProductionDuration: 0,
-          ProductionPIC: "Agung"
-        },
-        {
-          ProductionDate: dateStr,
-          ProductionStart: timeStr,
-          ProductionEnd: timeStr,
-          ProductionDuration: 0,
-          ProductionPIC: "Ilham"
-        },
-        {
-          ProductionDate: dateStr,
-          ProductionStart: timeStr,
-          ProductionEnd: timeStr,
-          ProductionDuration: 0,
-          ProductionPIC: "Yudha"
-        }
-      ],
-      totalProduction: 0
-    };
+        dandori: dandoriEntries,
+        production: productionEntries,
+        totalProduction,
+      });
+    }
+
+    return result;
   }
 
   function handleExportClick() {
-    const requestBody = buildRequestBody();
-    setPreviewData(requestBody);
+    const bodies = buildRequestBodies();
+    setPreviewData(bodies);
     setDownloadError(null);
     setPreviewOpen(true);
   }
 
   async function handleDownload() {
-    if (!previewData) return;
+    if (!previewData || previewData.length === 0) return;
 
     setDownloadLoading(true);
     setDownloadError(null);
