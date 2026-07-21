@@ -157,8 +157,6 @@ export default function MachineDetailPage() {
 
     const machineName = machine?.name ?? "";
     const TotalCounterProduct = 381534;
-    const SumofBottom = 386100;
-    const Result = ((TotalCounterProduct / SumofBottom) * 100).toFixed(2);
 
     // All DANDORI segments (shared across every product section)
     const dandoriSegments = segments.filter(
@@ -212,6 +210,10 @@ export default function MachineDetailPage() {
         0,
       );
 
+      const rpm = product?.rpm ?? 60;
+      const SumofBottom = Number(rpm) * totalProduction
+      const Result = ((TotalCounterProduct / SumofBottom) * 100).toFixed(2);
+
       result.push({
         header: {
           Date: selectedDate,
@@ -220,7 +222,7 @@ export default function MachineDetailPage() {
           Customer: product?.customer ?? "-",
           Operators: operators.join(", ") || "-",
           MachineName: machineName,
-          Rpm: product?.rpm?.toString() ?? "60",
+          Rpm: rpm.toString(),
           TotalCounterProduct: TotalCounterProduct.toString(),
           SumofBottom: SumofBottom.toString(),
           Result: Result.toString(),
