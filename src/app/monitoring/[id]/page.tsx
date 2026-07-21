@@ -89,7 +89,7 @@ export default function MachineDetailPage() {
     Number(machineId),
     timelineParams,
   );
-  const { data: productData } = useProductHook();
+  const { data: productData } = useProductHook({ paginate: false });
 
   const [seconds, setSeconds] = useState(0);
 
@@ -171,13 +171,13 @@ export default function MachineDetailPage() {
       DandoriDuration: durationMinutes(seg.start, seg.end),
     }));
 
-    // Group RUNNING segments by productPartNo
-    const runningByProduct = new Map<string, TimelineSegment[]>();
+    // Group non-DANDORI segments by productPartNo (all statuses except DANDORI are production)
+    const productionByProduct = new Map<string, TimelineSegment[]>();
     for (const seg of segments) {
-      if (seg.status === MACHINE_STATUS.RUNNING) {
-        const key = seg.productPartNo || "-"; // use "-" for unknown product
-        if (!runningByProduct.has(key)) runningByProduct.set(key, []);
-        runningByProduct.get(key)!.push(seg);
+      if (seg.status !== MACHINE_STATUS.DANDORI) {
+        const key = seg.productPartNo || "-";
+        if (!productionByProduct.has(key)) productionByProduct.set(key, []);
+        productionByProduct.get(key)!.push(seg);
       }
     }
 
@@ -185,21 +185,21 @@ export default function MachineDetailPage() {
     const result: FillTemplateData[] = [];
     const products: ProductData[] = productData?.data ?? [];
 
-    for (const [partNo, runningSegments] of runningByProduct) {
+    for (const [partNo, productionSegments] of productionByProduct) {
       // Look up product master data for customer/rpm
       const product = products.find((p) => p.partNo === partNo);
 
-      // Get distinct operators from this product's running segments
+      // Get distinct operators from this product's segments
       const operators = [
         ...new Set(
-          runningSegments
+          productionSegments
             .map((s) => s.userName)
             .filter((name): name is string => !!name),
         ),
       ];
 
       // Build production entries
-      const productionEntries = runningSegments.map((seg) => ({
+      const productionEntries = productionSegments.map((seg) => ({
         ProductionDate: toDateString(seg.start),
         ProductionStart: toTimeString(seg.start),
         ProductionEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
@@ -215,8 +215,8 @@ export default function MachineDetailPage() {
       result.push({
         header: {
           Date: selectedDate,
-          PartNo: partNo === "-" ? (product?.partNo ?? runningSegments[0]?.productPartNo ?? "-") : partNo,
-          PartName: product?.partName ?? runningSegments[0]?.productPartName ?? "-",
+          PartNo: partNo === "-" ? (product?.partNo ?? productionSegments[0]?.productPartNo ?? "-") : partNo,
+          PartName: product?.partName ?? productionSegments[0]?.productPartName ?? "-",
           Customer: product?.customer ?? "-",
           Operators: operators.join(", ") || "-",
           MachineName: machineName,
