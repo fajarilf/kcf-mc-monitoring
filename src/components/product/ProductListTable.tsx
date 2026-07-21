@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -16,6 +18,7 @@ import { useProductHook } from "@/hooks/use-product";
 import { useDebouncedValue } from "@/hooks/use-debounce";
 import { Pagination } from "@/components/ui/pagination";
 import { ProductUpdateModal } from "./ProductUpdateModal";
+import { productService } from "@/services/product-service";
 import type { ProductData } from "@/model/product-model";
 
 export function ProductListTable() {
@@ -23,6 +26,8 @@ export function ProductListTable() {
   const [page, setPage] = useState(1);
   const [editProduct, setEditProduct] = useState<ProductData | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<ProductData | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const debouncedSearch = useDebouncedValue(search);
 
   // Reset to page 1 when search changes
@@ -42,9 +47,24 @@ export function ProductListTable() {
     setEditProduct(product);
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleDelete = (product: ProductData) => {
-    // TODO: confirm and delete
+    setDeleteTarget(product);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await productService.delete(deleteTarget.id);
+      toast.success(`Product "${deleteTarget.partName}" deleted`);
+      setDeleteTarget(null);
+      refetch();
+    } catch (err) {
+      toast.error("Failed to delete product");
+      console.error(err);
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -61,6 +81,14 @@ export function ProductListTable() {
       open={createOpen}
       onOpenChange={setCreateOpen}
       onSuccess={() => refetch()}
+    />
+    <ConfirmDialog
+      open={!!deleteTarget}
+      onOpenChange={(open) => !open && setDeleteTarget(null)}
+      title="Delete product?"
+      description={deleteTarget ? `"${deleteTarget.partName}" will be permanently deleted.` : ""}
+      loading={deleting}
+      onConfirm={handleConfirmDelete}
     />
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-4">

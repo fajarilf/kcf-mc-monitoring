@@ -28,6 +28,8 @@ export function ProductUpdateModal({ product, open, onOpenChange, onSuccess }: P
   const [productNo, setProductNo] = useState(product?.productNo ?? "");
   const [partNo, setPartNo] = useState(product?.partNo ?? "");
   const [partName, setPartName] = useState(product?.partName ?? "");
+  const [customer, setCustomer] = useState(product?.customer ?? "");
+  const [rpm, setRpm] = useState(product?.rpm ?? "");
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: { preventDefault: () => void }) => {
@@ -36,10 +38,10 @@ export function ProductUpdateModal({ product, open, onOpenChange, onSuccess }: P
     setSubmitting(true);
     try {
       if (isEdit && product) {
-        await productService.update(product.id, { productNo, partNo, partName });
+        await productService.update(product.id, { productNo, partNo, partName, customer, rpm });
         toast.success(`Product "${partName}" updated`);
       } else {
-        await productService.create({ productNo, partNo, partName });
+        await productService.create({ productNo, partNo, partName, customer, rpm });
         toast.success(`Product "${partName}" created`);
       }
       
@@ -88,6 +90,22 @@ export function ProductUpdateModal({ product, open, onOpenChange, onSuccess }: P
               value={partName}
               onChange={(e) => setPartName(e.target.value)}
               required
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="customer">Customer</Label>
+            <Input
+              id="customer"
+              value={customer}
+              onChange={(e) => setCustomer(e.target.value)}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="rpm">RPM Value</Label>
+            <Input
+              id="rpm"
+              value={rpm}
+              onChange={(e) => setRpm(e.target.value)}
             />
           </div>
           <DialogFooter>

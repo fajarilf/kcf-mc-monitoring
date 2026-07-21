@@ -15,12 +15,16 @@ export type ProductUpdatePayload = {
     productNo: string,
     partName: string,
     partNo: string,
+    customer?: string,
+    rpm?: number | string,
 }
 
 export type ProductCreatePayload = {
     productNo: string,
     partName: string,
     partNo: string,
+    customer?: string,
+    rpm?: number | string,
 }
 
 export type ProductParam = RequestParam;
