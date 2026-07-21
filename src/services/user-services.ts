@@ -23,6 +23,11 @@ class UserService {
         const res = await api.post(this.base_url, data);
         return res.data;
     }
+
+    async delete(id: number): Promise<void> {
+        const res = await api.delete(`${this.base_url}/${id}`);
+        return res.data;
+    }
 }
 
 export const userService = new UserService();

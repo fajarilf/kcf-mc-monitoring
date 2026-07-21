@@ -20,6 +20,11 @@ class ProductService {
         return res.data as ProductResponse;
     }
 
+    async delete(id: number): Promise<ProductResponse> {
+        const res = await api.delete(`${this.base_url}/${id}`);
+        return res.data as ProductResponse;
+    }
+
 }
 
 export const productService = new ProductService();
