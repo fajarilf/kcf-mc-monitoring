@@ -111,6 +111,8 @@ function toGanttRows(
           status: seg.status,
           start,
           duration: end - start,
+          userName: seg.userName,
+          productPartNo: seg.productPartNo,
         };
       })
       .filter((seg) => seg.duration > 0);

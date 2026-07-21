@@ -6,7 +6,10 @@ import { MACHINE_STATUS } from "@/lib/status";
 export type TimelineSegment = {
     start: string,
     end: string | null,
+    userName: string | null,
     status: MACHINE_STATUS,
+    productPartName: string | null,
+    productPartNo: string | null,
 };
 
 /** Timeline data for one machine. */

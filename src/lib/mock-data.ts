@@ -107,6 +107,8 @@ export interface GanttSegment {
   status: MACHINE_STATUS;
   start: number; // hours from beginning of period (0-based)
   duration: number; // hours
+  userName?: string | null;
+  productPartNo?: string | null;
 }
 
 export interface GanttRow {

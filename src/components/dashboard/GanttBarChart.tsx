@@ -54,6 +54,8 @@ export const GanttBarChart = memo(function GanttBarChart({
     statusLabel: string;
     start: number;
     end: number;
+    userName: string | null;
+    productPartNo: string | null;
     x: number;
     y: number;
   } | null>(null);
@@ -157,6 +159,8 @@ export const GanttBarChart = memo(function GanttBarChart({
                         statusLabel: statusLabel[seg.status],
                         start: seg.start,
                         end: seg.start + seg.duration,
+                        userName: seg.userName ?? null,
+                        productPartNo: seg.productPartNo ?? null,
                         x: rect.left - container.left,
                         y: rect.top - container.top,
                       });
@@ -183,7 +187,9 @@ export const GanttBarChart = memo(function GanttBarChart({
                 borderColor: gridColor,
               }}
             >
-              {tooltipText}
+              <div>activity: {tooltipText}</div>
+              <div>operator: {hover.userName ?? "-"}</div>
+              <div>part number: {hover.productPartNo ?? "-"}</div>
             </div>
           )}
         </div>
