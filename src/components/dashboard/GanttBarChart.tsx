@@ -17,6 +17,8 @@ interface Props {
   tickCount?: number;
   formatTick?: (n: number) => string;
   formatClock?: (unit: number) => string;
+  hideLabels?: boolean;
+  rowHeight?: number;
 }
 
 export const GanttBarChart = memo(function GanttBarChart({
@@ -26,6 +28,8 @@ export const GanttBarChart = memo(function GanttBarChart({
   tickCount = 6,
   formatTick,
   formatClock,
+  hideLabels = false,
+  rowHeight,
 }: Props) {
   const stepSize = Math.max(1, Math.round(totalUnits / tickCount));
   const ticks = useMemo(() => {
@@ -47,7 +51,11 @@ export const GanttBarChart = memo(function GanttBarChart({
     : "rgba(255, 255, 255, 0.98)";
   const tooltipFg = isDark ? "rgb(241, 245, 249)" : "rgb(15, 23, 42)";
 
-  const height = useMemo(() => Math.max(260, rows.length * 48) + 24, [rows.length]);
+  const rowH = rowHeight ?? 48;
+  const height = useMemo(
+    () => Math.max(rows.length > 1 ? 260 : rowH, rows.length * rowH) + 24,
+    [rows.length, rowH],
+  );
 
   const [hover, setHover] = useState<{
     label: string;
@@ -89,20 +97,22 @@ export const GanttBarChart = memo(function GanttBarChart({
         ))}
       </div>
       <div style={{ height }} className="relative flex w-full select-none pb-6">
-        <div
-          className="flex flex-col shrink-0 pr-2 text-right"
-          style={{ color: tickColor, fontSize: 12 }}
-        >
-          {rows.map((r) => (
-            <div
-              key={r.machineId}
-              className="flex items-center"
-              style={{ height: 48 }}
-            >
-              {r.machineName}
-            </div>
-          ))}
-        </div>
+        {!hideLabels && (
+          <div
+            className="flex flex-col shrink-0 pr-2 text-right"
+            style={{ color: tickColor, fontSize: 12 }}
+          >
+            {rows.map((r) => (
+              <div
+                key={r.machineId}
+                className="flex items-center"
+                style={{ height: rowH }}
+              >
+                {r.machineName}
+              </div>
+            ))}
+          </div>
+        )}
         <div className="relative flex-1">
           {ticks.map((t) => {
             const leftPct = (t / totalUnits) * 100;
@@ -134,7 +144,7 @@ export const GanttBarChart = memo(function GanttBarChart({
             <div
               key={row.machineId}
               className="relative"
-              style={{ height: 48 }}
+              style={{ height: rowH }}
             >
               {row.segments.map((seg, si) => {
                 const leftPct = (seg.start / totalUnits) * 100;
