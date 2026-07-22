@@ -99,8 +99,8 @@ function toGanttRows(
     const machineId = String(machine.id);
     const machineName = machine.name.toUpperCase();
     const machineTimeline = timelineById.get(machineId);
-    const segment = machineTimeline?.timeline
-      .map((seg) => {
+    const segment = machineTimeline?.production.flatMap((group) =>
+      group.timeline.map((seg) => {
         const segStartMs = new Date(seg.start).getTime();
         const segEndMs = seg.end ? new Date(seg.end).getTime() : nowMs;
         const startMs = Math.max(windowStartMs, Math.min(windowEndMs, segStartMs));
@@ -111,11 +111,11 @@ function toGanttRows(
           status: seg.status,
           start,
           duration: end - start,
-          userName: seg.userName,
-          productPartNo: seg.productPartNo,
+          userName: group.user,
+          productPartNo: group.partNo,
         };
-      })
-      .filter((seg) => seg.duration > 0);
+      }),
+    ).filter((seg) => seg.duration > 0);
 
     result.push({ machineId, machineName, segments: segment ?? [] });
   }
@@ -159,10 +159,14 @@ export default function DashboardPage() {
 
   const machines = useMemo<MachineStatusDetail[]>(() => {
     if (!timelineData?.data) return [];
-    return timelineData.data.map((m) => ({
-      machine_id: m.machineId,
-      status: m.timeline[m.timeline.length - 1]?.status ?? MACHINE_STATUS.OFF,
-    }));
+    return timelineData.data.map((m) => {
+      const allSegments = m.production.flatMap((g) => g.timeline);
+      const last = allSegments[allSegments.length - 1];
+      return {
+        machine_id: m.machineId,
+        status: last?.status ?? MACHINE_STATUS.OFF,
+      };
+    });
   }, [timelineData]);
 
   // Seed last-seen status from the timeline so the first MQTT tick that
@@ -171,7 +175,8 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!timelineData?.data) return;
     for (const m of timelineData.data) {
-      const last = m.timeline[m.timeline.length - 1];
+      const allSegments = m.production.flatMap((g) => g.timeline);
+      const last = allSegments[allSegments.length - 1];
       if (last) lastStatusRef.current.set(String(m.machineId), last.status);
     }
   }, [timelineData]);

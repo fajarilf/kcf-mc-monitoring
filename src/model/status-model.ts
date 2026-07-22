@@ -2,21 +2,27 @@ import { RequestParam } from "@/lib/request-param";
 import { ApiResponses } from "@/types/api-responses";
 import { MACHINE_STATUS } from "@/lib/status";
 
-/** A single status segment within a machine's timeline. */
-export type TimelineSegment = {
+/** A single status segment within a production group's timeline. */
+export type ProductionSegment = {
     start: string,
     end: string | null,
-    userName: string | null,
     status: MACHINE_STATUS,
-    productPartName: string | null,
-    productPartNo: string | null,
+};
+
+/** A production group containing segments for one operator/product combination. */
+export type ProductionGroup = {
+    user: string,
+    productName: string | null,
+    partNo: string | null,
+    quantity: number,
+    timeline: ProductionSegment[],
 };
 
 /** Timeline data for one machine. */
 export type MachineTimeline = {
     machineId: number,
     machineName: string,
-    timeline: TimelineSegment[],
+    production: ProductionGroup[],
 };
 
 type StatusParams = {

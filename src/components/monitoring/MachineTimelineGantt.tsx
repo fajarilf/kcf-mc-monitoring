@@ -44,35 +44,35 @@ function toSingleGanttRow(
   productPartNoFilter?: string,
 ): GanttRow {
   const windowEndMs = windowStartMs + windowHours * MS_PER_HOUR;
-  const segments: GanttSegment[] = data
-    ? data.timeline
-        .filter(
-          (seg) =>
-            !productPartNoFilter || seg.productPartNo === productPartNoFilter,
-        )
-        .map((seg) => {
-          const segStartMs = new Date(seg.start).getTime();
-          const segEndMs = seg.end ? new Date(seg.end).getTime() : nowMs;
-          const startMs = Math.max(
-            windowStartMs,
-            Math.min(windowEndMs, segStartMs),
-          );
-          const endMs = Math.max(
-            windowStartMs,
-            Math.min(windowEndMs, segEndMs),
-          );
-          const start = (startMs - windowStartMs) / MS_PER_HOUR;
-          const end = (endMs - windowStartMs) / MS_PER_HOUR;
-          return {
-            status: seg.status,
-            start,
-            duration: end - start,
-            userName: seg.userName,
-            productPartNo: seg.productPartNo,
-          };
-        })
-        .filter((seg) => seg.duration > 0)
-    : [];
+
+  const groups = data?.production ?? [];
+  const filtered = productPartNoFilter
+    ? groups.filter((g) => g.partNo === productPartNoFilter)
+    : groups;
+
+  const segments: GanttSegment[] = filtered.flatMap((group) =>
+    group.timeline.map((seg) => {
+      const segStartMs = new Date(seg.start).getTime();
+      const segEndMs = seg.end ? new Date(seg.end).getTime() : nowMs;
+      const startMs = Math.max(
+        windowStartMs,
+        Math.min(windowEndMs, segStartMs),
+      );
+      const endMs = Math.max(
+        windowStartMs,
+        Math.min(windowEndMs, segEndMs),
+      );
+      const start = (startMs - windowStartMs) / MS_PER_HOUR;
+      const end = (endMs - windowStartMs) / MS_PER_HOUR;
+      return {
+        status: seg.status,
+        start,
+        duration: end - start,
+        userName: group.user,
+        productPartNo: group.partNo,
+      };
+    }),
+  ).filter((seg) => seg.duration > 0);
 
   return {
     machineId,

@@ -47,7 +47,7 @@ import { ExportPreview } from "@/components/monitoring/ExportPreview";
 import { FillTemplateData } from "@/lib/template/fill-template";
 import { useStatusTimelineByIdHook } from "@/hooks/use-status-hook";
 import { useProductHook } from "@/hooks/use-product";
-import type { TimelineSegment } from "@/model/status-model";
+import type { ProductionGroup } from "@/model/status-model";
 import type { ProductData } from "@/model/product-model";
 
 const accentBar: Record<MACHINE_STATUS, string> = {
@@ -152,15 +152,15 @@ export default function MachineDetailPage() {
   }
 
   function buildRequestBodies(): FillTemplateData[] {
-    const segments: TimelineSegment[] = timelineData?.data?.timeline ?? [];
-    if (segments.length === 0) return [];
+    const groups: ProductionGroup[] = timelineData?.data?.production ?? [];
+    if (groups.length === 0) return [];
 
     const machineName = machine?.name ?? "";
-    const TotalCounterProduct = 381534;
+    const products: ProductData[] = productData?.data ?? [];
 
-    // All DANDORI segments (shared across every product section)
-    const dandoriSegments = segments.filter(
-      (s) => s.status === MACHINE_STATUS.DANDORI,
+    // Collect all DANDORI segments across every production group (shared across products)
+    const dandoriSegments = groups.flatMap((g) =>
+      g.timeline.filter((s) => s.status === MACHINE_STATUS.DANDORI),
     );
     const dandoriEntries = dandoriSegments.map((seg) => ({
       DandoriDate: toDateString(seg.start),
@@ -169,40 +169,24 @@ export default function MachineDetailPage() {
       DandoriDuration: durationMinutes(seg.start, seg.end),
     }));
 
-    // Group non-DANDORI segments by productPartNo (all statuses except DANDORI are production)
-    const productionByProduct = new Map<string, TimelineSegment[]>();
-    for (const seg of segments) {
-      if (seg.status !== MACHINE_STATUS.DANDORI) {
-        const key = seg.productPartNo || "-";
-        if (!productionByProduct.has(key)) productionByProduct.set(key, []);
-        productionByProduct.get(key)!.push(seg);
-      }
-    }
-
-    // Build one FillTemplateData per product
+    // Build one FillTemplateData per production group (already grouped by product)
     const result: FillTemplateData[] = [];
-    const products: ProductData[] = productData?.data ?? [];
 
-    for (const [partNo, productionSegments] of productionByProduct) {
-      // Look up product master data for customer/rpm
+    for (const group of groups) {
+      const partNo = group.partNo || "-";
       const product = products.find((p) => p.partNo === partNo);
 
-      // Get distinct operators from this product's segments
-      const operators = [
-        ...new Set(
-          productionSegments
-            .map((s) => s.userName)
-            .filter((name): name is string => !!name),
-        ),
-      ];
+      // Non-DANDORI segments are production entries
+      const productionSegments = group.timeline.filter(
+        (s) => s.status !== MACHINE_STATUS.DANDORI,
+      );
 
-      // Build production entries
       const productionEntries = productionSegments.map((seg) => ({
         ProductionDate: toDateString(seg.start),
         ProductionStart: toTimeString(seg.start),
         ProductionEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
         ProductionDuration: durationMinutes(seg.start, seg.end),
-        ProductionPIC: seg.userName || "-",
+        ProductionPIC: group.user || "-",
       }));
 
       const totalProduction = productionEntries.reduce(
@@ -211,21 +195,22 @@ export default function MachineDetailPage() {
       );
 
       const rpm = product?.rpm ?? 60;
-      const SumofBottom = Number(rpm) * totalProduction
-      const Result = ((TotalCounterProduct / SumofBottom) * 100).toFixed(2);
+      const totalCounterProduct = group.quantity;
+      const sumOfBottom = Number(rpm) * totalProduction;
+      const resultValue = sumOfBottom > 0 ? ((totalCounterProduct / sumOfBottom) * 100).toFixed(2) : "0";
 
       result.push({
         header: {
           Date: selectedDate,
-          PartNo: partNo === "-" ? (product?.partNo ?? productionSegments[0]?.productPartNo ?? "-") : partNo,
-          PartName: product?.partName ?? productionSegments[0]?.productPartName ?? "-",
+          PartNo: partNo === "-" ? (product?.partNo ?? group.partNo ?? "-") : partNo,
+          PartName: product?.partName ?? group.productName ?? "-",
           Customer: product?.customer ?? "-",
-          Operators: operators.join(", ") || "-",
+          Operators: group.user || "-",
           MachineName: machineName,
           Rpm: rpm.toString(),
-          TotalCounterProduct: TotalCounterProduct.toString(),
-          SumofBottom: SumofBottom.toString(),
-          Result: Result.toString(),
+          TotalCounterProduct: totalCounterProduct.toString(),
+          SumofBottom: sumOfBottom.toString(),
+          Result: resultValue,
         },
         dandori: dandoriEntries,
         production: productionEntries,

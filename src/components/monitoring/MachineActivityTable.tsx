@@ -54,7 +54,8 @@ export function MachineActivityTable({ machineId, startDate, endDate }: Props) {
   const events = useMemo(() => {
     if (!data?.data || now === null) return [];
     const dataMachine = data.data;
-    const segments = dataMachine.timeline.map((seg) => {
+    const allSegments = dataMachine.production.flatMap((g) => g.timeline);
+    const segments = allSegments.map((seg) => {
       const start = new Date(seg.start);
       const end = seg.end ? new Date(seg.end) : new Date();
       return {
