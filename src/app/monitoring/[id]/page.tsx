@@ -169,43 +169,63 @@ export default function MachineDetailPage() {
       DandoriDuration: durationMinutes(seg.start, seg.end),
     }));
 
-    // Build one FillTemplateData per production group (already grouped by product)
+    // Group production groups by partNo so multiple operators on the same
+    // product end up in a single worksheet instead of duplicate sheets.
+    const grouped = new Map<string, ProductionGroup[]>();
+    for (const group of groups) {
+      const key = group.partNo || "-";
+      const arr = grouped.get(key);
+      if (arr) arr.push(group);
+      else grouped.set(key, [group]);
+    }
+
     const result: FillTemplateData[] = [];
 
-    for (const group of groups) {
-      const partNo = group.partNo || "-";
+    for (const [partNo, mergedGroups] of grouped) {
       const product = products.find((p) => p.partNo === partNo);
 
-      // Non-DANDORI segments are production entries
-      const productionSegments = group.timeline.filter(
-        (s) => s.status !== MACHINE_STATUS.DANDORI,
-      );
+      // Collect distinct operators across all merged groups
+      const operators = [
+        ...new Set(mergedGroups.map((g) => g.user).filter(Boolean)),
+      ].join(", ") || "-";
 
-      const productionEntries = productionSegments.map((seg) => ({
-        ProductionDate: toDateString(seg.start),
-        ProductionStart: toTimeString(seg.start),
-        ProductionEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
-        ProductionDuration: durationMinutes(seg.start, seg.end),
-        ProductionPIC: group.user || "-",
-      }));
+      // Build production entries from all merged groups
+      const productionEntries = mergedGroups.flatMap((group) =>
+        group.timeline
+          .filter((s) => s.status !== MACHINE_STATUS.DANDORI)
+          .map((seg) => ({
+            ProductionDate: toDateString(seg.start),
+            ProductionStart: toTimeString(seg.start),
+            ProductionEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
+            ProductionDuration: durationMinutes(seg.start, seg.end),
+            ProductionPIC: group.user || "-",
+          })),
+      );
 
       const totalProduction = productionEntries.reduce(
         (sum, p) => sum + p.ProductionDuration,
         0,
       );
 
+      // Sum quantity across all merged groups for the same product
+      const totalCounterProduct = mergedGroups.reduce(
+        (sum, g) => sum + g.quantity,
+        0,
+      );
+
       const rpm = product?.rpm ?? 60;
-      const totalCounterProduct = group.quantity;
       const sumOfBottom = Number(rpm) * totalProduction;
-      const resultValue = sumOfBottom > 0 ? ((totalCounterProduct / sumOfBottom) * 100).toFixed(2) : "0";
+      const resultValue = sumOfBottom > 0
+        ? ((totalCounterProduct / sumOfBottom) * 100).toFixed(2)
+        : "0";
 
       result.push({
         header: {
           Date: selectedDate,
-          PartNo: partNo === "-" ? (product?.partNo ?? group.partNo ?? "-") : partNo,
-          PartName: product?.partName ?? group.productName ?? "-",
+          PartNo: partNo === "-" ? (product?.partNo ?? mergedGroups[0]?.partNo ?? "-") : partNo,
+          PartName: product?.partName ?? mergedGroups[0]?.productName ?? "-",
           Customer: product?.customer ?? "-",
-          Operators: group.user || "-",
+          Operators: operators,
           MachineName: machineName,
           Rpm: rpm.toString(),
           TotalCounterProduct: totalCounterProduct.toString(),
