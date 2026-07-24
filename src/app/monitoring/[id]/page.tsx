@@ -96,6 +96,8 @@ export default function MachineDetailPage() {
 
   const [seconds, setSeconds] = useState(0);
 
+  const [selectedPartNo, setSelectedPartNo] = useState<string | null>(null);
+
   // Excel preview dialog state
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewData, setPreviewData] = useState<FillTemplateData[] | null>(null);
@@ -155,15 +157,21 @@ export default function MachineDetailPage() {
   }
 
   function buildRequestBodies(): FillTemplateData[] {
-    const groups: ProductionGroup[] = timelineData?.data?.production ?? [];
+    let groups: ProductionGroup[] = timelineData?.data?.production ?? [];
+    if (groups.length === 0) return [];
+
+    if (selectedPartNo) groups = groups.filter((g) => g.partNo === selectedPartNo);
     if (groups.length === 0) return [];
 
     const machineName = machine?.name ?? "";
     const products: ProductData[] = productData?.data ?? [];
 
-    // Collect all DANDORI segments across every production group (shared across products)
     const dandoriSegments = groups.flatMap((g) =>
-      g.timeline.filter((s) => s.status === MACHINE_STATUS.DANDORI),
+      g.timeline.filter((s) => {
+        if (s.status !== MACHINE_STATUS.DANDORI) return false;
+        const endMs = s.end ? new Date(s.end).getTime() : Date.now();
+        return endMs - new Date(s.start).getTime() >= 60_000;
+      }),
     );
     const dandoriEntries = dandoriSegments.map((seg) => ({
       DandoriDate: toDateString(seg.start),
@@ -195,7 +203,11 @@ export default function MachineDetailPage() {
       // Build production entries from all merged groups
       const productionEntries = mergedGroups.flatMap((group) =>
         group.timeline
-          .filter((s) => s.status !== MACHINE_STATUS.DANDORI)
+          .filter((s) => {
+            if (s.status === MACHINE_STATUS.DANDORI) return false;
+            const endMs = s.end ? new Date(s.end).getTime() : Date.now();
+            return endMs - new Date(s.start).getTime() >= 60_000;
+          })
           .map((seg) => ({
             ProductionDate: toDateString(seg.start),
             ProductionStart: toTimeString(seg.start),
@@ -446,7 +458,7 @@ export default function MachineDetailPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <MachineTimelineGantt machineId={machineId} startDate={startDate} endDate={endDate} />
+          <MachineTimelineGantt machineId={machineId} startDate={startDate} endDate={endDate} selectedPartNo={selectedPartNo} onSelectedPartNoChange={setSelectedPartNo} />
         </CardContent>
       </Card>
 
@@ -503,7 +515,7 @@ export default function MachineDetailPage() {
               ) : (
                 <Download className="mr-2 size-4" />
               )}
-              {downloadLoading ? "Generating&hellip;" : "Download"}
+              {downloadLoading ? "Generating" : "Download"}
             </Button>
           </DialogFooter>
         </DialogContent>

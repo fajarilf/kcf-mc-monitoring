@@ -236,7 +236,7 @@ export default function DashboardPage() {
   );
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-6">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard
           label="Running"
@@ -271,9 +271,9 @@ export default function DashboardPage() {
         </p>
       ) : (
         <div className="overflow-hidden">
-          <div className="flex gap-3 w-max animate-marquee hover:[animation-play-state:paused]">
+          <div className="flex gap-3 w-max animate-marquee hover:paused">
             {[...(machineData?.data ?? []), ...(machineData?.data ?? [])].map((m, i) => (
-              <div key={`${m.id}-${i}`} className="w-64 shrink-0">
+              <div key={`${m.id}-${i}`} className="w-80 shrink-0">
                 <Link
                   href={`/monitoring/${m.id}`}
                   aria-label={`View details for ${m.name}`}

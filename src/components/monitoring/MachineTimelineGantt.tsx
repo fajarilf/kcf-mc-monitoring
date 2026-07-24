@@ -85,9 +85,11 @@ interface Props {
   machineId: string;
   startDate: string;
   endDate: string;
+  selectedPartNo?: string | null;
+  onSelectedPartNoChange?: (partNo: string | null) => void;
 }
 
-export function MachineTimelineGantt({ machineId, startDate, endDate }: Props) {
+export function MachineTimelineGantt({ machineId, startDate, endDate, selectedPartNo, onSelectedPartNoChange }: Props) {
   const now = useNowTicker(1000);
   const chartNow = useMemo(
     () => (now === null ? null : Math.floor(now / 30_000) * 30_000),
@@ -95,7 +97,6 @@ export function MachineTimelineGantt({ machineId, startDate, endDate }: Props) {
   );
 
   const [user, setUser] = useState<UserData | null>();
-  const [product, setProduct] = useState<ProductData | null>();
   const [searchUser, setSearchUser] = useState<string>();
 
   const userInputRef = useRef<HTMLInputElement>(null);
@@ -163,6 +164,11 @@ export function MachineTimelineGantt({ machineId, startDate, endDate }: Props) {
     ];
   }, [timelineData?.data, windowStartMs, windowHours]);
 
+  const product = useMemo(() => {
+    if (!selectedPartNo) return null;
+    return productList.find((p) => p.partNo === selectedPartNo) ?? null;
+  }, [productList, selectedPartNo]);
+
   const rows = useMemo<GanttRow[]>(() => {
     if (chartNow === null) return [];
     return [
@@ -210,8 +216,8 @@ export function MachineTimelineGantt({ machineId, startDate, endDate }: Props) {
           items={productList}
           value={product}
           onValueChange={(data) => {
-            if (data?.id === 0) setProduct(null);
-            else setProduct(data);
+            if (data?.id === 0) onSelectedPartNoChange?.(null);
+            else onSelectedPartNoChange?.(data?.partNo ?? null);
             if (data) setTimeout(() => productInputRef.current?.blur(), 0);
           }}
           itemToStringLabel={(item: ProductData) => item.partNo}
@@ -221,7 +227,7 @@ export function MachineTimelineGantt({ machineId, startDate, endDate }: Props) {
             className="rounded-sm"
             placeholder="Select a Product"
             onFocus={() => {
-              setProduct(null);
+              onSelectedPartNoChange?.(null);
             }}
           />
           <ComboboxContent>
