@@ -74,7 +74,7 @@ function getRowMergeSpans(worksheet: Worksheet, rowNumber: number): ColumnSpan[]
 }
 
 /** Copy height + per-cell style from one row to another (values not included). */
-function copyRowStyle(worksheet: Worksheet, fromRow: number, toRow: number, maxCol = 18): void {
+function copyRowStyle(worksheet: Worksheet, fromRow: number, toRow: number, maxCol = 19): void {
   const src: Row = worksheet.getRow(fromRow);
   const dst: Row = worksheet.getRow(toRow);
   dst.height = src.height;
@@ -97,7 +97,7 @@ export function insertRepeatingRows(
   worksheet: Worksheet,
   templateRow: number,
   extra: number,
-  maxCol = 18,
+  maxCol = 19,
 ): void {
   if (extra <= 0) return;
 
