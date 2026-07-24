@@ -8,7 +8,6 @@ import { useStatusTimelineByIdHook } from "@/hooks/use-status-hook";
 import { useNowTicker } from "@/hooks/use-mounted-now";
 import { useDebouncedValue } from "@/hooks/use-debounce";
 import { useUsersHook } from "@/hooks/use-user-hook";
-import { useProductHook } from "@/hooks/use-product";
 import type { UserData } from "@/model/user-model";
 import type { ProductData } from "@/model/product-model";
 import {
@@ -98,27 +97,17 @@ export function MachineTimelineGantt({ machineId, startDate, endDate }: Props) {
   const [user, setUser] = useState<UserData | null>();
   const [product, setProduct] = useState<ProductData | null>();
   const [searchUser, setSearchUser] = useState<string>();
-  const [searchProduct, setSearchProduct] = useState<string>();
 
   const userInputRef = useRef<HTMLInputElement>(null);
   const productInputRef = useRef<HTMLInputElement>(null);
 
   const debouncedSearchUser = useDebouncedValue(searchUser);
-  const debouncedSearchProduct = useDebouncedValue(searchProduct);
 
   const { data: userData } = useUsersHook({ search: debouncedSearchUser });
-  const { data: productData } = useProductHook({
-    search: debouncedSearchProduct,
-    paginate: debouncedSearchProduct === "",
-  });
 
   const userList: UserData[] = [
     { id: 0, name: "All User", role: "" },
     ...(userData?.data ?? []),
-  ];
-  const productList: ProductData[] = [
-    { id: 0, productNo: "", partName: "", partNo: "All Part" },
-    ...(productData?.data ?? []),
   ];
 
   const days = useMemo(() => {
@@ -143,6 +132,26 @@ export function MachineTimelineGantt({ machineId, startDate, endDate }: Props) {
       userId: user?.id,
     },
   );
+
+  const productList: ProductData[] = useMemo(() => {
+    const groups = timelineData?.data?.production ?? [];
+    const seen = new Map<string, ProductData>();
+    for (const g of groups) {
+      const partNo = g.partNo ?? "-";
+      if (!seen.has(partNo)) {
+        seen.set(partNo, {
+          id: seen.size + 1,
+          productNo: "",
+          partName: g.productName ?? "",
+          partNo: g.partNo ?? "",
+        });
+      }
+    }
+    return [
+      { id: 0, productNo: "", partName: "", partNo: "All Part" },
+      ...seen.values(),
+    ];
+  }, [timelineData?.data]);
 
   const windowStartMs = useMemo(() => {
     return new Date(startDate + "T00:00:00").getTime();
@@ -199,7 +208,6 @@ export function MachineTimelineGantt({ machineId, startDate, endDate }: Props) {
             else setProduct(data);
             if (data) setTimeout(() => productInputRef.current?.blur(), 0);
           }}
-          onInputValueChange={(value) => setSearchProduct(value)}
           itemToStringLabel={(item: ProductData) => item.partNo}
         >
           <ComboboxInput
@@ -208,7 +216,6 @@ export function MachineTimelineGantt({ machineId, startDate, endDate }: Props) {
             placeholder="Select a Product"
             onFocus={() => {
               setProduct(null);
-              setSearchProduct(undefined);
             }}
           />
           <ComboboxContent>
