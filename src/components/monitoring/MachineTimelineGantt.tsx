@@ -133,29 +133,35 @@ export function MachineTimelineGantt({ machineId, startDate, endDate }: Props) {
     },
   );
 
+  const windowStartMs = useMemo(() => {
+    return new Date(startDate + "T00:00:00").getTime();
+  }, [startDate]);
+
   const productList: ProductData[] = useMemo(() => {
     const groups = timelineData?.data?.production ?? [];
+    const windowEndMs = windowStartMs + windowHours * MS_PER_HOUR;
     const seen = new Map<string, ProductData>();
     for (const g of groups) {
       const partNo = g.partNo ?? "-";
-      if (!seen.has(partNo)) {
-        seen.set(partNo, {
-          id: seen.size + 1,
-          productNo: "",
-          partName: g.productName ?? "",
-          partNo: g.partNo ?? "",
-        });
-      }
+      if (seen.has(partNo)) continue;
+      const overlapsWindow = g.timeline.some((seg) => {
+        const segStart = new Date(seg.start).getTime();
+        const segEnd = seg.end ? new Date(seg.end).getTime() : Date.now();
+        return segStart < windowEndMs && segEnd > windowStartMs;
+      });
+      if (!overlapsWindow) continue;
+      seen.set(partNo, {
+        id: seen.size + 1,
+        productNo: "",
+        partName: g.productName ?? "",
+        partNo: g.partNo ?? "",
+      });
     }
     return [
       { id: 0, productNo: "", partName: "", partNo: "All Part" },
       ...seen.values(),
     ];
-  }, [timelineData?.data]);
-
-  const windowStartMs = useMemo(() => {
-    return new Date(startDate + "T00:00:00").getTime();
-  }, [startDate]);
+  }, [timelineData?.data, windowStartMs, windowHours]);
 
   const rows = useMemo<GanttRow[]>(() => {
     if (chartNow === null) return [];
