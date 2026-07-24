@@ -236,7 +236,7 @@ export default function DashboardPage() {
   );
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-2">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard
           label="Running"
@@ -270,23 +270,29 @@ export default function DashboardPage() {
           Loading machines…
         </p>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {[...(machineData?.data ?? [])]
-            .sort((a, b) => a.id - b.id)
-            .map((m) => (
-              <Link
-                key={m.id}
-                href={`/monitoring/${m.id}`}
-                aria-label={`View details for ${m.name}`}
-                className="rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <MachineCardCompact machine={m} />
-              </Link>
+        <div className="overflow-hidden">
+          <div
+            className="flex gap-3 w-max"
+            style={{ animation: "marquee 30s linear infinite" }}
+            onMouseEnter={(e) => (e.currentTarget.style.animationPlayState = "paused")}
+            onMouseLeave={(e) => (e.currentTarget.style.animationPlayState = "running")}
+          >
+            {[...(machineData?.data ?? []), ...(machineData?.data ?? [])].map((m, i) => (
+              <div key={`${m.id}-${i}`} className="w-64 shrink-0">
+                <Link
+                  href={`/monitoring/${m.id}`}
+                  aria-label={`View details for ${m.name}`}
+                  className="rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <MachineCardCompact machine={m} />
+                </Link>
+              </div>
             ))}
+          </div>
         </div>
       )}
 
-      <Card>
+      <Card className="pe-2">
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="mx-auto text-center">
             <CardTitle className="text-[20px] mb-2">Machine Activity Timeline</CardTitle>

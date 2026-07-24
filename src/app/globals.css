@@ -157,3 +157,8 @@
     @apply bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60;
   }
 }
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
