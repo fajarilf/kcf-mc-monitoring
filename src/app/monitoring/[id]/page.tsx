@@ -77,13 +77,16 @@ export default function MachineDetailPage() {
   const { data: machineData, isLoading: machineIdLoading, isError } = useMachineByIdHook(Number(machineId));
   const { data: machineList, isLoading: machineLoading } = useMachineHook();
   const [machineInfo, setMachineInfo] = useState<MachineInformation>();
-  const [selectedDate, setSelectedDate] = useState<string>(() => {
+  const [startDate, setStartDate] = useState<string>(() => {
+    return new Date().toISOString().split("T")[0];
+  });
+  const [endDate, setEndDate] = useState<string>(() => {
     return new Date().toISOString().split("T")[0];
   });
 
   const timelineParams = useMemo(
-    () => ({ startDate: selectedDate, endDate: selectedDate }),
-    [selectedDate],
+    () => ({ startDate, endDate }),
+    [startDate, endDate],
   );
   const { data: timelineData } = useStatusTimelineByIdHook(
     Number(machineId),
@@ -221,7 +224,7 @@ export default function MachineDetailPage() {
 
       result.push({
         header: {
-          Date: selectedDate,
+          Date: startDate === endDate ? startDate : `${startDate} ~ ${endDate}`,
           PartNo: partNo === "-" ? (product?.partNo ?? mergedGroups[0]?.partNo ?? "-") : partNo,
           PartName: product?.partName ?? mergedGroups[0]?.productName ?? "-",
           Customer: product?.customer ?? "-",
@@ -423,20 +426,27 @@ export default function MachineDetailPage() {
           <div>
             <CardTitle>Activity</CardTitle>
             <CardDescription>
-              24-hour activity timeline for the selected date
+              Activity timeline for the selected period
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
             <Input
               type="date"
               className="h-9 w-auto bg-background rounded-sm"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+            <span className="text-xs text-muted-foreground">to</span>
+            <Input
+              type="date"
+              className="h-9 w-auto bg-background rounded-sm"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
             />
           </div>
         </CardHeader>
         <CardContent>
-          <MachineTimelineGantt machineId={machineId} selectedDate={selectedDate} />
+          <MachineTimelineGantt machineId={machineId} startDate={startDate} endDate={endDate} />
         </CardContent>
       </Card>
 
@@ -444,12 +454,15 @@ export default function MachineDetailPage() {
         <CardHeader>
           <CardTitle>Activity Log</CardTitle>
           <CardDescription>
-            Most recent events first · {selectedDate ? new Date(selectedDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "All time"}
+            Most recent events first · {startDate === endDate
+              ? new Date(startDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+              : `${new Date(startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${new Date(endDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
+            }
           </CardDescription>
           <Separator className="mt-2" />
         </CardHeader>
         <CardContent>
-          <MachineActivityTable machineId={machineId} startDate={selectedDate} endDate={selectedDate} />
+          <MachineActivityTable machineId={machineId} startDate={startDate} endDate={endDate} />
         </CardContent>
       </Card>
 

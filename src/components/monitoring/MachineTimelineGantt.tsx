@@ -22,6 +22,7 @@ import {
 import { MachineActivityChartSkeleton } from "./Skeleton";
 
 const MS_PER_HOUR = 1000 * 60 * 60;
+const MS_PER_DAY = 24 * MS_PER_HOUR;
 
 function formatClock(h: number, addSecond: boolean = true): string {
   const wrapped = ((h % 24) + 24) % 24;
@@ -83,10 +84,11 @@ function toSingleGanttRow(
 
 interface Props {
   machineId: string;
-  selectedDate: string;
+  startDate: string;
+  endDate: string;
 }
 
-export function MachineTimelineGantt({ machineId, selectedDate }: Props) {
+export function MachineTimelineGantt({ machineId, startDate, endDate }: Props) {
   const now = useNowTicker(1000);
   const chartNow = useMemo(
     () => (now === null ? null : Math.floor(now / 30_000) * 30_000),
@@ -119,25 +121,32 @@ export function MachineTimelineGantt({ machineId, selectedDate }: Props) {
     ...(productData?.data ?? []),
   ];
 
+  const days = useMemo(() => {
+    const start = new Date(startDate + "T00:00:00").getTime();
+    const end = new Date(endDate + "T00:00:00").getTime();
+    return Math.max(1, Math.round((end - start) / MS_PER_DAY) + 1);
+  }, [startDate, endDate]);
+
+  const windowHours = days * 24;
+
   const fetchStartDate = useMemo(() => {
-    const d = new Date(selectedDate + "T00:00:00");
+    const d = new Date(startDate + "T00:00:00");
     d.setDate(d.getDate() - 1);
     return d.toISOString().split("T")[0];
-  }, [selectedDate]);
+  }, [startDate]);
 
   const { data: timelineData, isLoading } = useStatusTimelineByIdHook(
     parseInt(machineId),
     {
       startDate: fetchStartDate,
-      endDate: selectedDate,
+      endDate,
       userId: user?.id,
     },
   );
 
   const windowStartMs = useMemo(() => {
-    const d = new Date(selectedDate + "T00:00:00");
-    return d.getTime();
-  }, [selectedDate]);
+    return new Date(startDate + "T00:00:00").getTime();
+  }, [startDate]);
 
   const rows = useMemo<GanttRow[]>(() => {
     if (chartNow === null) return [];
@@ -147,19 +156,32 @@ export function MachineTimelineGantt({ machineId, selectedDate }: Props) {
         machineId,
         chartNow,
         windowStartMs,
-        24,
+        windowHours,
         product?.partNo,
       ),
     ];
-  }, [timelineData?.data, machineId, chartNow, windowStartMs, product?.partNo]);
+  }, [timelineData?.data, machineId, chartNow, windowStartMs, windowHours, product?.partNo]);
 
   const handleFormatTick = useCallback(
-    (h: number) => formatClock(h, false),
-    [],
+    (h: number) => {
+      if (days > 1 && h % 24 === 0) {
+        const d = new Date(windowStartMs + h * MS_PER_HOUR);
+        return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      }
+      return formatClock(h, false);
+    },
+    [windowStartMs, days],
   );
   const handleFormatClock = useCallback(
-    (h: number) => formatClock(h),
-    [],
+    (h: number) => {
+      if (days > 1) {
+        const d = new Date(windowStartMs + h * MS_PER_HOUR);
+        const dateStr = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        return `${dateStr} ${formatClock(h)}`;
+      }
+      return formatClock(h);
+    },
+    [windowStartMs, days],
   );
 
   if (isLoading) {
@@ -234,9 +256,9 @@ export function MachineTimelineGantt({ machineId, selectedDate }: Props) {
       </div>
       <GanttBarChart
         rows={rows}
-        totalUnits={24}
+        totalUnits={windowHours}
         unitLabel="h"
-        tickCount={12}
+        tickCount={days === 1 ? 12 : Math.min(days, 10)}
         hideLabels
         formatTick={handleFormatTick}
         formatClock={handleFormatClock}
