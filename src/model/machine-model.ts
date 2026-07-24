@@ -7,7 +7,13 @@ export type MachineListResponse = ApiResponses<MachineData[]>;
 export interface MachineData {
     id: number,
     name: string,
+    order?: number,
     created_at: Date,
+}
+
+export type MachineUpdatePayload = {
+    name: string,
+    order: number,
 }
 
 export type MachineInformation = {

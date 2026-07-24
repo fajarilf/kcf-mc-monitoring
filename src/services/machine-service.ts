@@ -1,5 +1,5 @@
 import api from "@/lib/api";
-import { MachineListResponse, MachineResponse } from "@/model/machine-model";
+import { MachineListResponse, MachineResponse, MachineUpdatePayload } from "@/model/machine-model";
 
 class MachineService {
     private base_url = "/machines";
@@ -11,6 +11,11 @@ class MachineService {
 
     async getById(id: number): Promise<MachineResponse> { 
         const res = await api.get(`${this.base_url}/${id}`);
+        return res.data as MachineResponse;
+    }
+
+    async update(id: number, data: MachineUpdatePayload): Promise<MachineResponse> {
+        const res = await api.put(`${this.base_url}/${id}`, data);
         return res.data as MachineResponse;
     }
 }
