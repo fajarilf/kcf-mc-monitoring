@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2, Package } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import {
@@ -14,12 +15,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useProductHook } from "@/hooks/use-product";
 import { useDebouncedValue } from "@/hooks/use-debounce";
 import { Pagination } from "@/components/ui/pagination";
 import { ProductUpdateModal } from "./ProductUpdateModal";
 import { productService } from "@/services/product-service";
 import type { ProductData } from "@/model/product-model";
+
+const PAGE_SIZE = 10;
+const COLUMN_COUNT = 6;
 
 export function ProductListTable() {
   const [search, setSearch] = useState("");
@@ -103,77 +108,83 @@ export function ProductListTable() {
           Create Product
         </Button>
       </div>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-90.5">Product No</TableHead>
-              <TableHead className="w-90.5">Part No</TableHead>
-              <TableHead>Part Name</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>RPM Value</TableHead>
-              <TableHead className="w-90.5 text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  Loading...
-                </TableCell>
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="pl-6">Product No</TableHead>
+                <TableHead>Part No</TableHead>
+                <TableHead>Part Name</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>RPM Value</TableHead>
+                <TableHead className="pr-6 text-right">Actions</TableHead>
               </TableRow>
-            ) : !data?.data?.length ? (
-              <TableRow>
-                <TableCell
-                  colSpan={6}
-                  className="h-24 text-center text-muted-foreground"
-                >
-                  No products found.
-                </TableCell>
-              </TableRow>
-            ) : (
-              data.data.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell>{product.productNo}</TableCell>
-                  <TableCell>{product.partNo}</TableCell>
-                  <TableCell>{product.partName}</TableCell>
-                  <TableCell>{product.customer || "-"}</TableCell>
-                  <TableCell>{product.rpm ?? "-"}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="inline-flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleUpdate(product)}
-                      >
-                        <Pencil className="size-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(product)}
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                Array.from({ length: PAGE_SIZE }).map((_, i) => (
+                  <TableRow key={i} className="hover:bg-transparent">
+                    {Array.from({ length: COLUMN_COUNT }).map((_, col) => (
+                      <TableCell key={col} className={col === 0 ? "pl-6" : col === COLUMN_COUNT - 1 ? "pr-6" : ""}>
+                        <Skeleton className="h-5 w-full" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : !data?.data?.length ? (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell colSpan={COLUMN_COUNT} className="py-16 text-center">
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                      <Package className="size-8 opacity-30" />
+                      <p className="text-sm font-medium">No products found</p>
+                      <p className="text-xs">
+                        Try adjusting your search or create a new product.
+                      </p>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-      {pagination && (
-        <Pagination
-          page={pagination.page}
-          totalPages={pagination.totalPages}
-          onPageChange={setPage}
-        />
-      )}
+              ) : (
+                data.data.map((product) => (
+                  <TableRow key={product.id}>
+                    <TableCell className="pl-6">{product.productNo}</TableCell>
+                    <TableCell>{product.partNo}</TableCell>
+                    <TableCell>{product.partName}</TableCell>
+                    <TableCell>{product.customer || "-"}</TableCell>
+                    <TableCell>{product.rpm ?? "-"}</TableCell>
+                    <TableCell className="pr-6 text-right">
+                      <div className="inline-flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleUpdate(product)}
+                        >
+                          <Pencil className="size-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => handleDelete(product)}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+          <Pagination
+            page={pagination?.page ?? 1}
+            totalPages={pagination?.totalPages ?? 1}
+            onPageChange={setPage}
+            total={pagination?.total}
+            pageSize={PAGE_SIZE}
+          />
+        </CardContent>
+      </Card>
     </div>
     </>
   );

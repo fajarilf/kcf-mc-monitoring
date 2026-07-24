@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 import {
   Table,
@@ -13,9 +13,11 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Pagination } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
 import { useDebouncedValue } from "@/hooks/use-debounce";
 import { useUsersHook } from "@/hooks/use-user-hook";
@@ -24,22 +26,7 @@ import { UserUpdateModal } from "./UserUpdateModal";
 import type { UserData, UserParams } from "@/model/user-model";
 
 const PAGE_SIZE = 10;
-const COLUMN_COUNT = 7;
-
-/** Builds a compact page list, inserting "gap" markers for large page counts. */
-function getPageItems(current: number, total: number): (number | "gap")[] {
-  if (total <= 7) {
-    return Array.from({ length: total }, (_, i) => i + 1);
-  }
-  const items: (number | "gap")[] = [1];
-  const start = Math.max(2, current - 1);
-  const end = Math.min(total - 1, current + 1);
-  if (start > 2) items.push("gap");
-  for (let p = start; p <= end; p++) items.push(p);
-  if (end < total - 1) items.push("gap");
-  items.push(total);
-  return items;
-}
+const COLUMN_COUNT = 5;
 
 export function UserTable() {
   const [search, setSearch] = useState("");
@@ -66,9 +53,6 @@ export function UserTable() {
   const pagination = data?.pagination;
   const totalPage = Math.max(1, pagination?.totalPages ?? 1);
   const total = pagination?.total ?? 0;
-  const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
-  const rangeEnd = (page - 1) * PAGE_SIZE + users.length;
-  const pageItems = getPageItems(page, totalPage);
   // True while fetching a new page on top of already-rendered rows.
   const busy = isFetching && !isLoading;
 
@@ -132,143 +116,101 @@ export function UserTable() {
           Create User
         </Button>
       </div>
-      <div className="overflow-hidden rounded-xl border bg-card">
-      <Table className={cn("transition-opacity", busy && "opacity-60")}>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead className="pl-4">Name</TableHead>
-            {/* <TableHead>Email</TableHead>
-            <TableHead>Username</TableHead> */}
-            <TableHead>Role</TableHead>
-            <TableHead>Group</TableHead>
-            <TableHead>Machine</TableHead>
-            <TableHead className="pr-4 text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {isLoading && <LoadingRows />}
-
-          {isError && (
-            <TableRow className="hover:bg-transparent">
-              <TableCell
-                colSpan={COLUMN_COUNT}
-                className="h-24 text-center text-sm text-destructive"
-              >
-                Failed to load users
-                {error?.response?.data || error?.message
-                  ? ` — ${error.response?.data || error.message}`
-                  : ""}
-                .
-              </TableCell>
-            </TableRow>
-          )}
-
-          {!isLoading && !isError && users.length === 0 && (
-            <TableRow className="hover:bg-transparent">
-              <TableCell
-                colSpan={COLUMN_COUNT}
-                className="h-24 text-center text-sm text-muted-foreground"
-              >
-                No users found.
-              </TableCell>
-            </TableRow>
-          )}
-
-          {!isLoading &&
-            !isError &&
-            users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell className="pl-4 font-medium">{user.name}</TableCell>
-                {/* <TableCell className="text-muted-foreground">
-                  {user.email || "-"}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {user.username || "-"}
-                </TableCell> */}
-                <TableCell>
-                  <RoleBadge role={user.role} />
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {user.groupName || "-"}
-                </TableCell>
-                <TableCell className="text-muted-foreground">
-                  {user.machineName || "-"}
-                </TableCell>
-                <TableCell className="pr-4">
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleUpdate(user)}
-                    >
-                      <Pencil />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleDelete(user)}
-                    >
-                      <Trash2 />
-                    </Button>
-                  </div>
-                </TableCell>
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          <Table className={cn("transition-opacity", busy && "opacity-60")}>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="pl-6">Name</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Group</TableHead>
+                <TableHead>Machine</TableHead>
+                <TableHead className="pr-6 text-right">Actions</TableHead>
               </TableRow>
-            ))}
-        </TableBody>
-      </Table>
+            </TableHeader>
+            <TableBody>
+              {isLoading && <LoadingRows />}
 
-      {!isError && (
-        <div className="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-muted-foreground">
-            {isLoading
-              ? "Loading users…"
-              : total > 0
-                ? `Showing ${rangeStart}–${rangeEnd} of ${total} users`
-                : "No users to show"}
-          </p>
-          <div className="flex items-center gap-1">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={page <= 1 || isLoading}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              <ChevronLeft />
-              Prev
-            </Button>
-            {pageItems.map((item, i) =>
-              item === "gap" ? (
-                <span
-                  key={`gap-${i}`}
-                  className="px-1.5 text-sm text-muted-foreground"
-                >
-                  &hellip;
-                </span>
-              ) : (
-                <Button
-                  key={item}
-                  size="sm"
-                  variant={item === page ? "default" : "outline"}
-                  className="min-w-8"
-                  onClick={() => setPage(item)}
-                >
-                  {item}
-                </Button>
-              ),
-            )}
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={page >= totalPage || isLoading}
-              onClick={() => setPage((p) => Math.min(totalPage, p + 1))}
-            >
-              Next
-              <ChevronRight />
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
+              {isError && (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell
+                    colSpan={COLUMN_COUNT}
+                    className="py-16 text-center text-sm text-destructive"
+                  >
+                    Failed to load users
+                    {error?.response?.data || error?.message
+                      ? ` — ${error.response?.data || error.message}`
+                      : ""}
+                    .
+                  </TableCell>
+                </TableRow>
+              )}
+
+              {!isLoading && !isError && users.length === 0 && (
+                <TableRow className="hover:bg-transparent">
+                  <TableCell
+                    colSpan={COLUMN_COUNT}
+                    className="py-16 text-center"
+                  >
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                      <Users className="size-8 opacity-30" />
+                      <p className="text-sm font-medium">No users found</p>
+                      <p className="text-xs">
+                        Try adjusting your search or create a new user.
+                      </p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+
+              {!isLoading &&
+                !isError &&
+                users.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="pl-6 font-medium">{user.name}</TableCell>
+                    <TableCell>
+                      <RoleBadge role={user.role} />
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {user.groupName || "-"}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {user.machineName || "-"}
+                    </TableCell>
+                    <TableCell className="pr-6 text-right">
+                      <div className="inline-flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleUpdate(user)}
+                        >
+                          <Pencil className="size-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => handleDelete(user)}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+            </TableBody>
+          </Table>
+          {!isError && (
+            <Pagination
+              page={page}
+              totalPages={totalPage}
+              onPageChange={setPage}
+              total={total}
+              pageSize={PAGE_SIZE}
+            />
+          )}
+        </CardContent>
+      </Card>
     </div>
     </>
   );

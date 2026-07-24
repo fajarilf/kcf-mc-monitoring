@@ -3,8 +3,6 @@
 import { useMemo, useState } from "react";
 import {
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   RotateCcw,
 } from "lucide-react";
 import {
@@ -31,6 +29,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Pagination } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
 import { useMachineHook } from "@/hooks/use-machine";
 import { useAlarmHistoryHook } from "@/hooks/use-alarm";
@@ -131,8 +130,6 @@ export default function HistoryPage() {
   const pagination = data?.pagination;
   const totalPages = pagination?.totalPages ?? 1;
   const total = pagination?.total ?? rows.length;
-  const canPrev = pagination?.hasPreviousPage ?? page > 1;
-  const canNext = pagination?.hasNextPage ?? page < totalPages;
 
   const hasFilters =
     machineId !== ALL || status !== ALL || startDate !== "" || endDate !== "";
@@ -167,9 +164,9 @@ export default function HistoryPage() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2.5">
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h2 className="text-2xl font-semibold">
             Alarm History
-          </h1>
+          </h2>
         </div>
         <p className="text-sm text-muted-foreground">
           Review when machine alarms were triggered and when they recovered.
@@ -340,40 +337,13 @@ export default function HistoryPage() {
             </Table>
           </div>
 
-          <div className="flex items-center justify-between gap-4 border-t px-6 py-3">
-            <p className="text-sm text-muted-foreground">
-              {total === 0
-                ? "No results"
-                : `Showing ${fromRow}–${toRow} of ${total}`}
-            </p>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">
-                Page {pagination?.page ?? page} of {totalPages}
-              </span>
-              <div className="flex items-center gap-1.5">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="size-8"
-                  aria-label="Previous page"
-                  disabled={!canPrev}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  <ChevronLeft className="size-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="size-8"
-                  aria-label="Next page"
-                  disabled={!canNext}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  <ChevronRight className="size-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            total={total}
+            pageSize={PAGE_SIZE}
+          />
         </CardContent>
       </Card>
     </div>
