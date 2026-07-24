@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import type { GanttRow } from "@/lib/mock-data";
 import {
@@ -66,7 +66,18 @@ export const GanttBarChart = memo(function GanttBarChart({
     productPartNo: string | null;
     x: number;
     y: number;
+    containerWidth: number;
   } | null>(null);
+
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const [clampedX, setClampedX] = useState(0);
+
+  useLayoutEffect(() => {
+    if (!hover || !tooltipRef.current) return;
+    const halfW = tooltipRef.current.offsetWidth / 2;
+    const x = Math.max(halfW, Math.min(hover.x, hover.containerWidth - halfW));
+    setClampedX(x);
+  }, [hover]);
 
   const tooltipText = useMemo(() => {
     if (!hover) return "";
@@ -173,6 +184,7 @@ export const GanttBarChart = memo(function GanttBarChart({
                         productPartNo: seg.productPartNo ?? null,
                         x: rect.left - container.left,
                         y: rect.top - container.top,
+                        containerWidth: container.width,
                       });
                     }}
                     onMouseLeave={() => setHover(null)}
@@ -187,9 +199,10 @@ export const GanttBarChart = memo(function GanttBarChart({
           ))}
           {hover && (
             <div
+              ref={tooltipRef}
               className="pointer-events-none absolute z-50 rounded-md border px-3 py-2 text-xs shadow-md whitespace-nowrap"
               style={{
-                left: hover.x,
+                left: clampedX,
                 top: hover.y - 8,
                 transform: "translate(-50%, -100%)",
                 backgroundColor: tooltipBg,
