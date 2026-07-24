@@ -180,6 +180,22 @@ export default function MachineDetailPage() {
       DandoriDuration: durationMinutes(seg.start, seg.end),
     }));
 
+    const problemEntries = groups.flatMap((g) =>
+      g.timeline
+        .filter((s) => {
+          if (s.status !== MACHINE_STATUS.CYOKOTEI_STOP) return false;
+          const endMs = s.end ? new Date(s.end).getTime() : Date.now();
+          return endMs - new Date(s.start).getTime() >= 60_000;
+        })
+        .map((seg) => ({
+          ProblemDate: toDateString(seg.start),
+          ProblemStart: toTimeString(seg.start),
+          ProblemEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
+          ProblemDuration: durationMinutes(seg.start, seg.end),
+          ProblemPIC: g.user || "-",
+        })),
+    );
+
     // Group production groups by partNo so multiple operators on the same
     // product end up in a single worksheet instead of duplicate sheets.
     const grouped = new Map<string, ProductionGroup[]>();
@@ -205,6 +221,7 @@ export default function MachineDetailPage() {
         group.timeline
           .filter((s) => {
             if (s.status === MACHINE_STATUS.DANDORI) return false;
+            if (s.status === MACHINE_STATUS.CYOKOTEI_STOP) return false;
             const endMs = s.end ? new Date(s.end).getTime() : Date.now();
             return endMs - new Date(s.start).getTime() >= 60_000;
           })
@@ -213,6 +230,7 @@ export default function MachineDetailPage() {
             ProductionStart: toTimeString(seg.start),
             ProductionEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
             ProductionDuration: durationMinutes(seg.start, seg.end),
+            Status: statusLabel[seg.status],
             ProductionPIC: group.user || "-",
           })),
       );
@@ -249,6 +267,7 @@ export default function MachineDetailPage() {
         },
         dandori: dandoriEntries,
         production: productionEntries,
+        problem: problemEntries,
         totalProduction,
       });
     }

@@ -71,7 +71,7 @@ function SheetGrid({
 }
 
 function ReportSection({ data }: { data: FillTemplateData }) {
-  const { header, dandori, production, totalProduction } = data;
+  const { header, dandori, production, problem, totalProduction } = data;
 
   return (
     <div className="flex flex-col gap-6">
@@ -261,6 +261,57 @@ function ReportSection({ data }: { data: FillTemplateData }) {
         >
           Mnt
         </Box>
+      </SheetGrid>
+
+      {/* PROBLEM section: excel rows 34-42(+) */}
+      <SheetGrid rows={2 + Math.max(problem.length, 1)}>
+        <Box col={1} colSpan={13} row={1} label center>
+          PROBLEM (CYOKOTEI STOP)
+        </Box>
+        <Box col={1} colSpan={8} row={2} label center>
+          WAKTU
+        </Box>
+        <Box col={9} colSpan={3} row={2} label center>
+          DURASI
+        </Box>
+        <Box col={12} colSpan={2} row={2} label center>
+          PIC
+        </Box>
+
+        {problem.length === 0 ? (
+          <Box col={1} colSpan={13} row={3} center muted>
+            No problem entries
+          </Box>
+        ) : (
+          problem.map((entry, i) => {
+            const r = 3 + i;
+            return (
+              <div key={i} style={{ display: "contents" }}>
+                <Box col={1} colSpan={4} row={r} center>
+                  {entry.ProblemDate}
+                </Box>
+                <Box col={5} row={r} center>
+                  {entry.ProblemStart}
+                </Box>
+                <Box col={6} row={r} center>
+                  ~
+                </Box>
+                <Box col={7} colSpan={2} row={r} center>
+                  {entry.ProblemEnd}
+                </Box>
+                <Box col={9} colSpan={2} row={r} center>
+                  {entry.ProblemDuration}
+                </Box>
+                <Box col={11} row={r} center muted>
+                  Mnt
+                </Box>
+                <Box col={12} colSpan={2} row={r} center>
+                  {entry.ProblemPIC}
+                </Box>
+              </div>
+            );
+          })
+        )}
       </SheetGrid>
     </div>
   );

@@ -14,7 +14,17 @@ export interface ProductionEntry {
   ProductionStart: string;    // e.g. "09:00"
   ProductionEnd: string;      // e.g. "17:00"
   ProductionDuration: number; // minutes, e.g. 480
+  Status: string;             // e.g. "Dandori"
   ProductionPIC: string;      // person in charge name
+}
+
+/** One Problem time-block entry -> row 36, then rows 36-42, then cloned rows past that. */
+export interface ProblemEntry {
+  ProblemDate: string;        // e.g. "2026-07-15"
+  ProblemStart: string;       // e.g. "09:00"
+  ProblemEnd: string;         // e.g. "14:00"
+  ProblemDuration: number;    // minutes, e.g. 300
+  ProblemPIC: string;         // person in charge name
 }
 
 /** Flat key/value map for the single {{Placeholder}} cells (header block, rows 2-11). */
@@ -31,6 +41,7 @@ export interface FillTemplateData {
   header: HeaderData;
   dandori: DandoriEntry[];
   production: ProductionEntry[];
+  problem: ProblemEntry[];
   totalProduction: number;
 }
 
@@ -154,10 +165,15 @@ function fillWorksheet(ws: Worksheet, data: FillTemplateData): void {
   const PRODUCTION_FIRST_ROW = 18;
   const PRODUCTION_REPEAT_ROW = 19;
   const PRODUCTION_LAST_PREBUILT = 27;
+  const PROBLEM_FIRST_ROW = 36;
+  const PROBLEM_REPEAT_ROW = 37;
+  const PROBLEM_LAST_PREBUILT = 42;
+  const PROBLEM_PREBUILT = PROBLEM_LAST_PREBUILT - PROBLEM_FIRST_ROW + 1;
   let totalRow = 28;
 
   const dandori: DandoriEntry[] = data.dandori ?? [];
   const production: ProductionEntry[] = data.production ?? [];
+  const problem: ProblemEntry[] = data.problem ?? [];
 
   // expand DANDORI block if more than 1 row of data
   if (dandori.length > 1) {
@@ -203,6 +219,29 @@ function fillWorksheet(ws: Worksheet, data: FillTemplateData): void {
 
   ws.getCell(`J${totalRow}`).value = data.totalProduction ?? '';
   ws.getCell(`N${totalRow}`).value = 'Mnt';
+
+  // expand PROBLEM block if more rows than pre-built capacity
+  const productionShift = production.length > prebuiltCapacity ? production.length - prebuiltCapacity : 0;
+  const problemShift = dandoriShift + productionShift;
+  const problemFirstRowAfterShift = PROBLEM_FIRST_ROW + problemShift;
+  const problemRepeatRowAfterShift = PROBLEM_REPEAT_ROW + problemShift;
+  const problemLastPrebuiltAfterShift = PROBLEM_LAST_PREBUILT + problemShift;
+
+  if (problem.length > PROBLEM_PREBUILT) {
+    const extra = problem.length - PROBLEM_PREBUILT;
+    insertRepeatingRows(ws, problemLastPrebuiltAfterShift, extra);
+  }
+
+  problem.forEach((item, i) => {
+    const r = i === 0 ? problemFirstRowAfterShift : problemRepeatRowAfterShift + (i - 1);
+    ws.getCell(`B${r}`).value = item.ProblemDate ?? '';
+    ws.getCell(`F${r}`).value = item.ProblemStart ?? '';
+    ws.getCell(`G${r}`).value = '~';
+    ws.getCell(`H${r}`).value = item.ProblemEnd ?? '';
+    ws.getCell(`J${r}`).value = item.ProblemDuration ?? '';
+    ws.getCell(`L${r}`).value = 'Mnt';
+    ws.getCell(`M${r}`).value = item.ProblemPIC ?? '';
+  });
 
   replacePlaceholders(ws, data.header ?? {});
 }
