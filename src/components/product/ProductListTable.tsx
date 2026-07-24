@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Plus, Trash2, Package } from "lucide-react";
+import { Download, Pencil, Plus, Trash2, Package } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,6 +21,7 @@ import { useDebouncedValue } from "@/hooks/use-debounce";
 import { Pagination } from "@/components/ui/pagination";
 import { ProductUpdateModal } from "./ProductUpdateModal";
 import { productService } from "@/services/product-service";
+import { exportListToExcel } from "@/lib/excel/export-list";
 import type { ProductData } from "@/model/product-model";
 
 const PAGE_SIZE = 10;
@@ -33,6 +34,7 @@ export function ProductListTable() {
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ProductData | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const debouncedSearch = useDebouncedValue(search);
 
   // Reset to page 1 when search changes
@@ -72,6 +74,38 @@ export function ProductListTable() {
     }
   };
 
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const res = await productService.get({ paginate: false });
+      const allProducts: ProductData[] = res.data ?? [];
+      await exportListToExcel(
+        "Products",
+        [
+          { header: "Product No", key: "productNo", width: 20 },
+          { header: "Part No", key: "partNo", width: 20 },
+          { header: "Part Name", key: "partName", width: 25 },
+          { header: "Customer", key: "customer", width: 20 },
+          { header: "RPM", key: "rpm", width: 10 },
+        ],
+        allProducts.map((p) => ({
+          productNo: p.productNo,
+          partNo: p.partNo,
+          partName: p.partName,
+          customer: p.customer ?? "-",
+          rpm: p.rpm ?? "-",
+        })),
+        "products.xlsx",
+      );
+      toast.success("Products exported");
+    } catch (err) {
+      toast.error("Failed to export products");
+      console.error(err);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <>
     <ProductUpdateModal
@@ -106,6 +140,14 @@ export function ProductListTable() {
         <Button onClick={() => setCreateOpen(true)}>
           <Plus className="mr-2 size-4" />
           Create Product
+        </Button>
+        <Button
+          variant="outline"
+          onClick={handleExport}
+          disabled={exporting}
+        >
+          <Download className="mr-2 size-4" />
+          {exporting ? "Exporting…" : "Export to Excel"}
         </Button>
       </div>
       <Card className="overflow-hidden">

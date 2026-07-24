@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Pencil, Plus, Trash2, Users } from "lucide-react";
+import { Download, Pencil, Plus, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 import {
   Table,
@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { useDebouncedValue } from "@/hooks/use-debounce";
 import { useUsersHook } from "@/hooks/use-user-hook";
 import { userService } from "@/services/user-services";
+import { exportListToExcel } from "@/lib/excel/export-list";
 import { UserUpdateModal } from "./UserUpdateModal";
 import type { UserData, UserParams } from "@/model/user-model";
 
@@ -35,6 +36,7 @@ export function UserTable() {
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<UserData | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const debouncedSearch = useDebouncedValue(search);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,6 +82,36 @@ export function UserTable() {
     }
   }
 
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const res = await userService.get({ paginate: false });
+      const allUsers: UserData[] = res.data ?? [];
+      await exportListToExcel(
+        "Users",
+        [
+          { header: "Name", key: "name", width: 25 },
+          { header: "Role", key: "role", width: 15 },
+          { header: "Group", key: "groupName", width: 20 },
+          { header: "Machine", key: "machineName", width: 20 },
+        ],
+        allUsers.map((u) => ({
+          name: u.name,
+          role: u.role,
+          groupName: u.groupName ?? "-",
+          machineName: u.machineName ?? "-",
+        })),
+        "users.xlsx",
+      );
+      toast.success("Users exported");
+    } catch (err) {
+      toast.error("Failed to export users");
+      console.error(err);
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <>
     <UserUpdateModal
@@ -114,6 +146,14 @@ export function UserTable() {
         <Button onClick={() => setCreateOpen(true)}>
           <Plus className="mr-2 size-4" />
           Create User
+        </Button>
+        <Button
+          variant="outline"
+          onClick={handleExport}
+          disabled={exporting}
+        >
+          <Download className="mr-2 size-4" />
+          {exporting ? "Exporting…" : "Export to Excel"}
         </Button>
       </div>
       <Card className="overflow-hidden">
