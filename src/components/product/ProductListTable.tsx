@@ -24,12 +24,12 @@ import { productService } from "@/services/product-service";
 import { exportListToExcel } from "@/lib/excel/export-list";
 import type { ProductData } from "@/model/product-model";
 
-const PAGE_SIZE = 10;
 const COLUMN_COUNT = 6;
 
 export function ProductListTable() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [editProduct, setEditProduct] = useState<ProductData | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ProductData | null>(null);
@@ -42,9 +42,14 @@ export function ProductListTable() {
     setSearch(e.target.value);
     setPage(1);
   };
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setPage(1);
+  };
   const { data, isLoading, refetch } = useProductHook({
     search: debouncedSearch,
     page,
+    limit: pageSize,
     paginate: true,
   });
 
@@ -165,7 +170,7 @@ export function ProductListTable() {
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                Array.from({ length: PAGE_SIZE }).map((_, i) => (
+                Array.from({ length: pageSize }).map((_, i) => (
                   <TableRow key={i} className="hover:bg-transparent">
                     {Array.from({ length: COLUMN_COUNT }).map((_, col) => (
                       <TableCell key={col} className={col === 0 ? "pl-6" : col === COLUMN_COUNT - 1 ? "pr-6" : ""}>
@@ -223,7 +228,8 @@ export function ProductListTable() {
             totalPages={pagination?.totalPages ?? 1}
             onPageChange={setPage}
             total={pagination?.total}
-            pageSize={PAGE_SIZE}
+            pageSize={pageSize}
+            onPageSizeChange={handlePageSizeChange}
           />
         </CardContent>
       </Card>

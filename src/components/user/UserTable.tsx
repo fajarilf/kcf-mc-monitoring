@@ -26,12 +26,12 @@ import { exportListToExcel } from "@/lib/excel/export-list";
 import { UserUpdateModal } from "./UserUpdateModal";
 import type { UserData, UserParams } from "@/model/user-model";
 
-const PAGE_SIZE = 10;
 const COLUMN_COUNT = 5;
 
 export function UserTable() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [editUser, setEditUser] = useState<UserData | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<UserData | null>(null);
@@ -43,10 +43,14 @@ export function UserTable() {
     setSearch(e.target.value);
     setPage(1);
   };
+  const handlePageSizeChange = (size: number) => {
+    setPageSize(size);
+    setPage(1);
+  };
 
   const params = useMemo<UserParams>(
-    () => ({ page, limit: PAGE_SIZE, search: debouncedSearch, paginate: true }),
-    [page, debouncedSearch],
+    () => ({ page, limit: pageSize, search: debouncedSearch, paginate: true }),
+    [page, pageSize, debouncedSearch],
   );
 
   const { data, isLoading, isFetching, isError, error, refetch } = useUsersHook(params);
@@ -169,7 +173,7 @@ export function UserTable() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading && <LoadingRows />}
+              {isLoading && <LoadingRows count={pageSize} />}
 
               {isError && (
                 <TableRow className="hover:bg-transparent">
@@ -246,7 +250,8 @@ export function UserTable() {
               totalPages={totalPage}
               onPageChange={setPage}
               total={total}
-              pageSize={PAGE_SIZE}
+              pageSize={pageSize}
+              onPageSizeChange={handlePageSizeChange}
             />
           )}
         </CardContent>
@@ -265,10 +270,10 @@ function RoleBadge({ role }: { role: string }) {
   );
 }
 
-function LoadingRows() {
+function LoadingRows({ count = 10 }: { count?: number }) {
   return (
     <>
-      {Array.from({ length: PAGE_SIZE }).map((_, row) => (
+      {Array.from({ length: count }).map((_, row) => (
         <TableRow key={row} className="hover:bg-transparent">
           {Array.from({ length: COLUMN_COUNT }).map((_, col) => (
             <TableCell key={col} className="first:pl-4 last:pr-4">

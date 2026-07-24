@@ -1,5 +1,12 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 function getPageItems(current: number, total: number): (number | "gap")[] {
   if (total <= 7) {
@@ -23,6 +30,8 @@ type Props = {
   total?: number;
   /** Number of records per page. Required when `total` is provided. */
   pageSize?: number;
+  /** When provided, renders a rows-per-page selector. */
+  onPageSizeChange?: (size: number) => void;
 };
 
 export function Pagination({
@@ -31,6 +40,7 @@ export function Pagination({
   onPageChange,
   total,
   pageSize,
+  onPageSizeChange,
 }: Props) {
   if (totalPages <= 1 && (total === undefined || total === 0)) return null;
 
@@ -47,9 +57,31 @@ export function Pagination({
 
   return (
     <div className="flex items-center justify-between gap-4 border-t px-6 py-3">
-      <p className="text-sm text-muted-foreground">
-        {total === undefined ? "" : total === 0 ? "No results" : `Showing ${rangeStart}–${rangeEnd} of ${total}`}
-      </p>
+      <div className="flex items-center gap-3">
+        <p className="text-sm text-muted-foreground">
+          {total === undefined ? "" : total === 0 ? "No results" : `Showing ${rangeStart}–${rangeEnd} of ${total}`}
+        </p>
+        {onPageSizeChange && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground">Rows</span>
+            <Select
+              value={String(pageSize ?? 10)}
+              onValueChange={(v) => onPageSizeChange(Number(v))}
+            >
+              <SelectTrigger className="h-8 w-[70px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent align="start">
+                {[10, 25, 50, 100].map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    {n}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
       <div className="flex items-center gap-1">
         <Button
           variant="outline"

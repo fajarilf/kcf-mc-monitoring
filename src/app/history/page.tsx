@@ -40,7 +40,6 @@ import type {
 } from "@/model/alarm-model";
 
 const ALL = "all";
-const PAGE_SIZE = 10;
 
 const STATUS_OPTIONS: AlarmStatus[] = ["triggered", "recovered"];
 
@@ -112,17 +111,18 @@ export default function HistoryPage() {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const { data: machineList } = useMachineHook();
 
   const params = useMemo<AlarmHistoryParams>(() => {
-    const p: AlarmHistoryParams = { page, limit: PAGE_SIZE, paginate: true };
+    const p: AlarmHistoryParams = { page, limit: pageSize, paginate: true };
     if (machineId !== ALL) p.machineId = Number(machineId);
     if (status !== ALL) p.status = status as AlarmStatus;
     if (startDate) p.startDate = startDate;
     if (endDate) p.endDate = endDate;
     return p;
-  }, [machineId, status, startDate, endDate, page]);
+  }, [machineId, status, startDate, endDate, page, pageSize]);
 
   const { data, isLoading, isFetching } = useAlarmHistoryHook(params);
 
@@ -157,8 +157,13 @@ export default function HistoryPage() {
     setPage(1);
   }
 
-  const fromRow = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
-  const toRow = Math.min(page * PAGE_SIZE, total);
+  function handlePageSizeChange(size: number) {
+    setPageSize(size);
+    setPage(1);
+  }
+
+  const fromRow = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const toRow = Math.min(page * pageSize, total);
 
   return (
     <div className="flex flex-col gap-6">
@@ -287,7 +292,7 @@ export default function HistoryPage() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  Array.from({ length: 6 }).map((_, i) => (
+                  Array.from({ length: Math.min(pageSize, 10) }).map((_, i) => (
                     <TableRow key={i} className="hover:bg-transparent">
                       <TableCell colSpan={6} className="px-6 py-3">
                         <div className="h-5 w-full animate-pulse rounded bg-muted" />
@@ -342,7 +347,8 @@ export default function HistoryPage() {
             totalPages={totalPages}
             onPageChange={setPage}
             total={total}
-            pageSize={PAGE_SIZE}
+            pageSize={pageSize}
+            onPageSizeChange={handlePageSizeChange}
           />
         </CardContent>
       </Card>
