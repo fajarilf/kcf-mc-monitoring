@@ -15,8 +15,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import Link from "next/link";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { GanttBarChart } from "@/components/dashboard/GanttBarChart";
+import { MachineCardCompact } from "@/components/dashboard/MachineCardCompact";
 import { type GanttRow } from "@/lib/mock-data";
 import { MACHINE_STATUS } from "@/lib/status";
 import { useNowTicker } from "@/hooks/use-mounted-now";
@@ -262,6 +264,27 @@ export default function DashboardPage() {
         />
         <StatCard label="Off" value={counts.off} icon={PowerOff} tone="black" />
       </div>
+
+      {isLoading ? (
+        <p className="py-6 text-center text-sm text-muted-foreground">
+          Loading machines…
+        </p>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {[...(machineData?.data ?? [])]
+            .sort((a, b) => a.id - b.id)
+            .map((m) => (
+              <Link
+                key={m.id}
+                href={`/monitoring/${m.id}`}
+                aria-label={`View details for ${m.name}`}
+                className="rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <MachineCardCompact machine={m} />
+              </Link>
+            ))}
+        </div>
+      )}
 
       <Card>
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
