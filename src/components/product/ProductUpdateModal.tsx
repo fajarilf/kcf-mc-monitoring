@@ -37,11 +37,18 @@ export function ProductUpdateModal({ product, open, onOpenChange, onSuccess }: P
 
     setSubmitting(true);
     try {
+      let parsed: number | null = null;
+
+      parsed = Number(rpm);
+      
+      if (Number.isNaN(parsed))
+        parsed = null;
+
       if (isEdit && product) {
-        await productService.update(product.id, { productNo, partNo, partName, customer, rpm });
+        await productService.update(product.id, { productNo, partNo, partName, customer, rpm: parsed });
         toast.success(`Product "${partName}" updated`);
       } else {
-        await productService.create({ productNo, partNo, partName, customer, rpm });
+        await productService.create({ productNo, partNo, partName, customer, rpm: parsed });
         toast.success(`Product "${partName}" created`);
       }
       
@@ -50,7 +57,7 @@ export function ProductUpdateModal({ product, open, onOpenChange, onSuccess }: P
     } catch (err) {
       toast.error(isEdit ? "Failed to update product" : "Failed to create product");
       console.error(err);
-    } finally {
+    } finally { 
       setSubmitting(false);
     }
   };

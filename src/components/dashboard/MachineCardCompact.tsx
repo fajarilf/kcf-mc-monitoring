@@ -76,7 +76,7 @@ export function MachineCardCompact({ machine }: { machine: MachineData }) {
   return (
     <Card
       className={cn(
-        "relative flex h-full flex-col overflow-hidden ring-1 transition-all duration-200",
+        "relative flex h-full flex-col overflow-hidden ring-1 transition-all duration-200 py-1",
         "hover:-translate-y-0.5 hover:shadow-lg",
         accent.ring,
       )}
@@ -110,21 +110,21 @@ export function MachineCardCompact({ machine }: { machine: MachineData }) {
         </Badge>
       </CardHeader>
       <CardContent className="relative flex flex-1 flex-col gap-1.5 px-3 pt-1 pb-2.5">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Package className="size-3 shrink-0" />
+        <div className="flex items-center gap-2 text-lg text-muted-foreground">
+          <Package className="size-6 shrink-0" />
           <span className="truncate">
             {cardDetail?.product || "-"}
           </span>
         </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <User className="size-3 shrink-0" />
+        <div className="flex items-center gap-2 text-lg text-muted-foreground">
+          <User className="size-6 shrink-0" />
           <span className="truncate">
             {cardDetail?.operator || "-"}
           </span>
         </div>
-        <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center justify-between text-lg">
           <div className="flex items-center gap-2 text-muted-foreground">
-            <Hash className="size-3 shrink-0" />
+            <Hash className="size-6 shrink-0" />
             <span>Products</span>
           </div>
           <span className="font-semibold tabular-nums">

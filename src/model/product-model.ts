@@ -8,7 +8,7 @@ export type ProductData = {
     partNo: string,
     createdAt?: Date,
     customer?: string,
-    rpm?: number | string,
+    rpm?: number | string | null,
 }
 
 export type ProductUpdatePayload = {
@@ -16,7 +16,7 @@ export type ProductUpdatePayload = {
     partName: string,
     partNo: string,
     customer?: string,
-    rpm?: number | string,
+    rpm?: number | string | null,
 }
 
 export type ProductCreatePayload = {
@@ -24,7 +24,7 @@ export type ProductCreatePayload = {
     partName: string,
     partNo: string,
     customer?: string,
-    rpm?: number | string,
+    rpm?: number | string | null,
 }
 
 export type ProductParam = RequestParam;

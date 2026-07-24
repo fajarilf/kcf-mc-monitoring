@@ -221,7 +221,6 @@ export default function MachineDetailPage() {
         group.timeline
           .filter((s) => {
             if (s.status === MACHINE_STATUS.DANDORI) return false;
-            if (s.status === MACHINE_STATUS.CYOKOTEI_STOP) return false;
             const endMs = s.end ? new Date(s.end).getTime() : Date.now();
             return endMs - new Date(s.start).getTime() >= 60_000;
           })

@@ -185,11 +185,11 @@ function fillWorksheet(ws: Worksheet, data: FillTemplateData): void {
   dandori.forEach((item, i) => {
     const r = DANDORI_TEMPLATE_ROW + i;
     ws.getCell(`B${r}`).value = item.DandoriDate ?? '';
-    ws.getCell(`H${r}`).value = item.DandoriStart ?? '';
-    ws.getCell(`J${r}`).value = '~';
-    ws.getCell(`K${r}`).value = item.DandoriEnd ?? '';
-    ws.getCell(`M${r}`).value = item.DandoriDuration ?? '';
-    ws.getCell(`N${r}`).value = 'Mnt';
+    ws.getCell(`J${r}`).value = item.DandoriStart ?? '';
+    ws.getCell(`N${r}`).value = '~';
+    ws.getCell(`O${r}`).value = item.DandoriEnd ?? '';
+    ws.getCell(`Q${r}`).value = item.DandoriDuration ?? '';
+    ws.getCell(`R${r}`).value = 'Mnt';
   });
 
   // expand PRODUCTION block if more rows than pre-built capacity
@@ -209,16 +209,17 @@ function fillWorksheet(ws: Worksheet, data: FillTemplateData): void {
   production.forEach((item, i) => {
     const r = i === 0 ? productionFirstRowAfterShift : productionRepeatRowAfterShift + (i - 1);
     ws.getCell(`B${r}`).value = item.ProductionDate ?? '';
-    ws.getCell(`F${r}`).value = item.ProductionStart ?? '';
-    ws.getCell(`G${r}`).value = '~';
-    ws.getCell(`H${r}`).value = item.ProductionEnd ?? '';
-    ws.getCell(`J${r}`).value = item.ProductionDuration ?? '';
-    ws.getCell(`L${r}`).value = 'Mnt';
-    ws.getCell(`M${r}`).value = item.ProductionPIC ?? '';
+    ws.getCell(`G${r}`).value = item.ProductionStart ?? '';
+    ws.getCell(`H${r}`).value = '~';
+    ws.getCell(`J${r}`).value = item.ProductionEnd ?? '';
+    ws.getCell(`L${r}`).value = item.Status ?? '';
+    ws.getCell(`N${r}`).value = item.ProductionDuration ?? '';
+    ws.getCell(`P${r}`).value = 'Mnt';
+    ws.getCell(`Q${r}`).value = item.ProductionPIC ?? '';
   });
 
-  ws.getCell(`J${totalRow}`).value = data.totalProduction ?? '';
-  ws.getCell(`N${totalRow}`).value = 'Mnt';
+  ws.getCell(`N${totalRow}`).value = data.totalProduction ?? '';
+  ws.getCell(`R${totalRow}`).value = 'Mnt';
 
   // expand PROBLEM block if more rows than pre-built capacity
   const productionShift = production.length > prebuiltCapacity ? production.length - prebuiltCapacity : 0;
@@ -235,12 +236,12 @@ function fillWorksheet(ws: Worksheet, data: FillTemplateData): void {
   problem.forEach((item, i) => {
     const r = i === 0 ? problemFirstRowAfterShift : problemRepeatRowAfterShift + (i - 1);
     ws.getCell(`B${r}`).value = item.ProblemDate ?? '';
-    ws.getCell(`F${r}`).value = item.ProblemStart ?? '';
-    ws.getCell(`G${r}`).value = '~';
-    ws.getCell(`H${r}`).value = item.ProblemEnd ?? '';
-    ws.getCell(`J${r}`).value = item.ProblemDuration ?? '';
-    ws.getCell(`L${r}`).value = 'Mnt';
-    ws.getCell(`M${r}`).value = item.ProblemPIC ?? '';
+    ws.getCell(`E${r}`).value = item.ProblemStart ?? '';
+    ws.getCell(`F${r}`).value = '~';
+    ws.getCell(`G${r}`).value = item.ProblemEnd ?? '';
+    ws.getCell(`H${r}`).value = item.ProblemDuration ?? '';
+    ws.getCell(`I${r}`).value = 'Mnt';
+    ws.getCell(`J${r}`).value = item.ProblemPIC ?? '';
   });
 
   replacePlaceholders(ws, data.header ?? {});
