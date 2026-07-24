@@ -271,12 +271,7 @@ export default function DashboardPage() {
         </p>
       ) : (
         <div className="overflow-hidden">
-          <div
-            className="flex gap-3 w-max"
-            style={{ animation: "marquee 30s linear infinite" }}
-            onMouseEnter={(e) => (e.currentTarget.style.animationPlayState = "paused")}
-            onMouseLeave={(e) => (e.currentTarget.style.animationPlayState = "running")}
-          >
+          <div className="flex gap-3 w-max animate-marquee hover:[animation-play-state:paused]">
             {[...(machineData?.data ?? []), ...(machineData?.data ?? [])].map((m, i) => (
               <div key={`${m.id}-${i}`} className="w-64 shrink-0">
                 <Link
