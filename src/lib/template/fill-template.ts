@@ -247,6 +247,11 @@ function fillWorksheet(ws: Worksheet, data: FillTemplateData): void {
   replacePlaceholders(ws, data.header ?? {});
 }
 
+/** Replace characters that are forbidden in Excel worksheet names. */
+function sanitizeSheetName(name: string): string {
+  return name.replace(/[*?:\\/[\]]/g, '-');
+}
+
 /**
  * Deep-clone a worksheet within the same workbook.
  * Copies column widths, row heights, cell values, cell styles, and merged ranges.
@@ -335,7 +340,7 @@ export async function fillTemplateMulti(
   if (dataItems.length === 1) {
     // Single product — fill the existing Sheet1 directly
     fillWorksheet(templateWs, dataItems[0]);
-    templateWs.name = dataItems[0].header.PartNo || 'Report';
+    templateWs.name = sanitizeSheetName(dataItems[0].header.PartNo || 'Report');
     return workbook.xlsx.writeBuffer();
   }
 
@@ -343,12 +348,12 @@ export async function fillTemplateMulti(
   // First, create N-1 clones from the unfilled template
   const sheets: Worksheet[] = [templateWs];
   for (let i = 1; i < dataItems.length; i++) {
-    const sheetName = dataItems[i].header.PartNo || `Product ${i + 1}`;
+    const sheetName = sanitizeSheetName(dataItems[i].header.PartNo || `Product ${i + 1}`);
     sheets.push(cloneWorksheet(workbook, templateWs, sheetName));
   }
 
   // Rename the first sheet
-  templateWs.name = dataItems[0].header.PartNo || 'Report';
+  templateWs.name = sanitizeSheetName(dataItems[0].header.PartNo || 'Report');
 
   // Now fill each sheet with its product's data
   for (let i = 0; i < dataItems.length; i++) {
