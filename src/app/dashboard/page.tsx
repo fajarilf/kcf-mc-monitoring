@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Activity, Clock, PowerOff, Wrench, XCircle } from "lucide-react";
 import {
   Card,
@@ -125,11 +125,6 @@ function toGanttRows(
   return result;
 }
 
-type MachineStatusDetail = {
-  machine_id: number,
-  status: MACHINE_STATUS,
-}
-
 export default function DashboardPage() {
   const now = useNowTicker(1000);
   const [viewMode, setViewMode] = useState<ViewMode>("24h");
@@ -159,42 +154,48 @@ export default function DashboardPage() {
 
   const isLoading = timelineLoading || machineLoading;
 
-  const machines = useMemo<MachineStatusDetail[]>(() => {
-    if (!timelineData?.data) return [];
-    return timelineData.data.map((m) => {
-      const allSegments = m.production.flatMap((g) => g.timeline);
-      const last = allSegments[allSegments.length - 1];
-      return {
-        machine_id: m.machineId,
-        status: last?.status ?? MACHINE_STATUS.OFF,
-      };
-    });
-  }, [timelineData]);
+  // Real-time machine statuses for StatCards (seeded from timeline, updated by MQTT).
+  const [machineStatuses, setMachineStatuses] = useState<Map<number, MACHINE_STATUS>>(new Map());
 
-  // Seed last-seen status from the timeline so the first MQTT tick that
-  // simply echoes the current state does not trigger a redundant refetch.
-  const lastStatusRef = useRef<Map<string, MACHINE_STATUS>>(new Map());
   useEffect(() => {
     if (!timelineData?.data) return;
-    for (const m of timelineData.data) {
-      const allSegments = m.production.flatMap((g) => g.timeline);
-      const last = allSegments[allSegments.length - 1];
-      if (last) lastStatusRef.current.set(String(m.machineId), last.status);
-    }
+    setMachineStatuses((prev) => {
+      let changed = false;
+      const next = new Map(prev);
+      for (const m of timelineData.data) {
+        if (!next.has(m.machineId)) {
+          const segs = m.production.flatMap((g) => g.timeline);
+          const last = segs[segs.length - 1];
+          if (last) { next.set(m.machineId, last.status); changed = true; }
+        }
+      }
+      return changed ? next : prev;
+    });
   }, [timelineData]);
 
   useMqttJson<MqttResponses>("+", (payload, message) => {
     const id = message.topic.match(/^machine(\d+)$/)?.[1];
     if (!id || !payload.Machine) return;
-    const incoming = payload.Machine.STATUS;
-    const prev = lastStatusRef.current.get(id);
-    lastStatusRef.current.set(id, incoming);
-    if (prev !== undefined && prev !== incoming) refetch();
+    const machineId = Number(id);
+    const status = payload.Machine.STATUS;
+    setMachineStatuses((prev) => {
+      if (prev.get(machineId) === status) return prev;
+      const next = new Map(prev);
+      next.set(machineId, status);
+      return next;
+    });
   });
 
+  // Refetch timeline data every 30s (for Gantt chart).
+  useEffect(() => {
+    const id = setInterval(() => refetch(), 30_000);
+    return () => clearInterval(id);
+  }, [refetch]);
+
   const counts = useMemo(() => {
+    const all = machineData?.data ?? [];
     const by = (status: MACHINE_STATUS): number =>
-      machines.filter((m) => m.status === status).length;
+      all.filter((m) => (machineStatuses.get(m.id) ?? MACHINE_STATUS.OFF) === status).length;
     return {
       running: by(MACHINE_STATUS.RUNNING),
       dandori: by(MACHINE_STATUS.DANDORI),
@@ -202,7 +203,7 @@ export default function DashboardPage() {
       setup: by(MACHINE_STATUS.SETUP),
       off: by(MACHINE_STATUS.OFF),
     };
-  }, [machines]);
+  }, [machineData, machineStatuses]);
 
   const shift = useMemo(
     () => (chartNow === null ? null : getShiftWindow(chartNow, viewMode)),
