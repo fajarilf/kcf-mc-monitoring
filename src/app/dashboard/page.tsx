@@ -154,31 +154,28 @@ export default function DashboardPage() {
 
   const isLoading = timelineLoading || machineLoading;
 
-  // Real-time machine statuses for StatCards (seeded from timeline, updated by MQTT).
-  const [machineStatuses, setMachineStatuses] = useState<Map<number, MACHINE_STATUS>>(new Map());
+  // Real-time machine statuses for StatCards.
+  const [mqttStatuses, setMqttStatuses] = useState<Map<number, MACHINE_STATUS>>(new Map());
 
-  useEffect(() => {
-    if (!timelineData?.data) return;
-    setMachineStatuses((prev) => {
-      let changed = false;
-      const next = new Map(prev);
+  const machineStatuses = useMemo(() => {
+    const map = new Map<number, MACHINE_STATUS>();
+    if (timelineData?.data) {
       for (const m of timelineData.data) {
-        if (!next.has(m.machineId)) {
-          const segs = m.production.flatMap((g) => g.timeline);
-          const last = segs[segs.length - 1];
-          if (last) { next.set(m.machineId, last.status); changed = true; }
-        }
+        const segs = m.production.flatMap((g) => g.timeline);
+        const last = segs[segs.length - 1];
+        if (last) map.set(m.machineId, last.status);
       }
-      return changed ? next : prev;
-    });
-  }, [timelineData]);
+    }
+    for (const [id, status] of mqttStatuses) map.set(id, status);
+    return map;
+  }, [timelineData, mqttStatuses]);
 
   useMqttJson<MqttResponses>("+", (payload, message) => {
     const id = message.topic.match(/^machine(\d+)$/)?.[1];
     if (!id || !payload.Machine) return;
     const machineId = Number(id);
     const status = payload.Machine.STATUS;
-    setMachineStatuses((prev) => {
+    setMqttStatuses((prev) => {
       if (prev.get(machineId) === status) return prev;
       const next = new Map(prev);
       next.set(machineId, status);
