@@ -80,13 +80,17 @@ function getRowMergeSpans(worksheet: Worksheet, rowNumber: number): ColumnSpan[]
 }
 
 /** Copy height + per-cell style from one row to another (values not included). */
-function copyRowStyle(worksheet: Worksheet, fromRow: number, toRow: number, maxCol = 22): void {
+function copyRowStyle(worksheet: Worksheet, fromRow: number, toRow: number): void {
   const src: Row = worksheet.getRow(fromRow);
   const dst: Row = worksheet.getRow(toRow);
   dst.height = src.height;
-  for (let c = 1; c <= maxCol; c++) {
-    dst.getCell(c).style = { ...src.getCell(c).style };
-  }
+  
+  // Dynamically detect all cells with styles in the source row
+  src.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+    if (cell.style) {
+      dst.getCell(colNumber).style = { ...cell.style };
+    }
+  });
 }
 
 /**
@@ -103,7 +107,6 @@ export function insertRepeatingRows(
   worksheet: Worksheet,
   templateRow: number,
   extra: number,
-  maxCol = 22,
 ): void {
   if (extra <= 0) return;
 
@@ -136,7 +139,7 @@ export function insertRepeatingRows(
 
   for (let i = 0; i < extra; i++) {
     const newRowNum = templateRow + 1 + i;
-    copyRowStyle(worksheet, templateRow, newRowNum, maxCol);
+    copyRowStyle(worksheet, templateRow, newRowNum);
     spans.forEach(([sc, ec]) => {
       worksheet.mergeCells(newRowNum, sc, newRowNum, ec);
     });
@@ -265,6 +268,9 @@ function fillWorksheet(ws: Worksheet, data: FillTemplateData): void {
 
   ws.getCell(`H${problemTotalRow}`).value = data.totalProblem ?? '';
   ws.getCell(`I${problemTotalRow}`).value = 'Mnt';
+
+  ws.getCell(`E${problemTotalRow + 2}`).value = "";
+  ws.getCell(`T${problemTotalRow + 2}`).value = "";
 
   replacePlaceholders(ws, data.header ?? {});
 }
