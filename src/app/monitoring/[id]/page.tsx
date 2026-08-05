@@ -222,7 +222,7 @@ export default function MachineDetailPage() {
       const productionEntries = mergedGroups.flatMap((group) =>
         group.timeline
           .filter((s) => {
-            if (s.status === MACHINE_STATUS.DANDORI || s.status === MACHINE_STATUS.OFF) return false;
+            if (s.status === MACHINE_STATUS.DANDORI || s.status === MACHINE_STATUS.OFF || s.status === MACHINE_STATUS.CYOKOTEI_STOP) return false;
             const endMs = s.end ? new Date(s.end).getTime() : Date.now();
             return endMs - new Date(s.start).getTime() >= 60_000;
           })
