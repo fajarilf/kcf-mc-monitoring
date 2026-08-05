@@ -166,24 +166,24 @@ export default function MachineDetailPage() {
     const machineName = machine?.name ?? "";
     const products: ProductData[] = productData?.data ?? [];
 
-    const dandoriSegments = groups.flatMap((g) =>
+    const dandoriEntries = groups.flatMap((g) =>
       g.timeline.filter((s) => {
         if (s.status !== MACHINE_STATUS.DANDORI) return false;
         const endMs = s.end ? new Date(s.end).getTime() : Date.now();
         return endMs - new Date(s.start).getTime() >= 60_000;
-      }),
+      }).map((seg) => ({
+        DandoriDate: toDateString(seg.start),
+        DandoriStart: toTimeString(seg.start),
+        DandoriEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
+        DandoriDuration: durationMinutes(seg.start, seg.end),
+        DandoriPIC: g.user
+      }))
     );
-    const dandoriEntries = dandoriSegments.map((seg) => ({
-      DandoriDate: toDateString(seg.start),
-      DandoriStart: toTimeString(seg.start),
-      DandoriEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
-      DandoriDuration: durationMinutes(seg.start, seg.end),
-    }));
 
     const problemEntries = groups.flatMap((g) =>
       g.timeline
         .filter((s) => {
-          if (s.status !== MACHINE_STATUS.CYOKOTEI_STOP) return false;
+          if (s.status === MACHINE_STATUS.DANDORI || s.status === MACHINE_STATUS.RUNNING) return false;
           const endMs = s.end ? new Date(s.end).getTime() : Date.now();
           return endMs - new Date(s.start).getTime() >= 60_000;
         })
@@ -193,6 +193,8 @@ export default function MachineDetailPage() {
           ProblemEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
           ProblemDuration: durationMinutes(seg.start, seg.end),
           ProblemPIC: g.user || "-",
+          ProblemStatus: statusLabel[seg.status],
+          ProblemDescription: seg.message
         })),
     );
 
@@ -220,7 +222,7 @@ export default function MachineDetailPage() {
       const productionEntries = mergedGroups.flatMap((group) =>
         group.timeline
           .filter((s) => {
-            if (s.status === MACHINE_STATUS.DANDORI) return false;
+            if (s.status === MACHINE_STATUS.DANDORI || s.status === MACHINE_STATUS.OFF) return false;
             const endMs = s.end ? new Date(s.end).getTime() : Date.now();
             return endMs - new Date(s.start).getTime() >= 60_000;
           })
@@ -231,8 +233,19 @@ export default function MachineDetailPage() {
             ProductionDuration: durationMinutes(seg.start, seg.end),
             Status: statusLabel[seg.status],
             ProductionPIC: group.user || "-",
+            ProductionCounter: group.counter
           })),
       );
+
+      const totalDandori = dandoriEntries.reduce(
+        (sum, p) => sum + p.DandoriDuration,
+        0
+      )
+
+      const totalProblem = problemEntries.reduce(
+        (sum, p) => sum + p.ProblemDuration,
+        0
+      )
 
       const totalProduction = productionEntries.reduce(
         (sum, p) => sum + p.ProductionDuration,
@@ -268,6 +281,8 @@ export default function MachineDetailPage() {
         production: productionEntries,
         problem: problemEntries,
         totalProduction,
+        totalDandori,
+        totalProblem,
       });
     }
 

@@ -4,6 +4,7 @@ import { MACHINE_STATUS } from "@/lib/status";
 
 /** A single status segment within a production group's timeline. */
 export type ProductionSegment = {
+    message: string;
     start: string,
     end: string | null,
     status: MACHINE_STATUS,
@@ -11,6 +12,7 @@ export type ProductionSegment = {
 
 /** A production group containing segments for one operator/product combination. */
 export type ProductionGroup = {
+    counter: number;
     user: string,
     productName: string | null,
     partNo: string | null,
