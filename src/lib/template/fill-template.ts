@@ -5,6 +5,7 @@ export interface DandoriEntry {
   DandoriDate: string;      // e.g. "2026-07-15"
   DandoriStart: string;     // e.g. "08:00"
   DandoriEnd: string;       // e.g. "08:30"
+  DandoriPIC: string;       // person in charge name
   DandoriDuration: number;  // minutes, e.g. 30
 }
 
@@ -14,6 +15,7 @@ export interface ProductionEntry {
   ProductionStart: string;    // e.g. "09:00"
   ProductionEnd: string;      // e.g. "17:00"
   ProductionDuration: number; // minutes, e.g. 480
+  ProductionCounter: number;
   Status: string;             // e.g. "Dandori"
   ProductionPIC: string;      // person in charge name
 }
@@ -23,6 +25,8 @@ export interface ProblemEntry {
   ProblemDate: string;        // e.g. "2026-07-15"
   ProblemStart: string;       // e.g. "09:00"
   ProblemEnd: string;         // e.g. "14:00"
+  ProblemStatus: string;      // e.g. "Cyokotei Stop"
+  ProblemDescription: string;   // e.g. "Oil Change"
   ProblemDuration: number;    // minutes, e.g. 300
   ProblemPIC: string;         // person in charge name
 }
@@ -42,7 +46,9 @@ export interface FillTemplateData {
   dandori: DandoriEntry[];
   production: ProductionEntry[];
   problem: ProblemEntry[];
+  totalDandori: number;
   totalProduction: number;
+  totalProblem: number;
 }
 
 /** A single-row merge span, expressed as 1-based [startColumn, endColumn]. */
@@ -74,7 +80,7 @@ function getRowMergeSpans(worksheet: Worksheet, rowNumber: number): ColumnSpan[]
 }
 
 /** Copy height + per-cell style from one row to another (values not included). */
-function copyRowStyle(worksheet: Worksheet, fromRow: number, toRow: number, maxCol = 19): void {
+function copyRowStyle(worksheet: Worksheet, fromRow: number, toRow: number, maxCol = 22): void {
   const src: Row = worksheet.getRow(fromRow);
   const dst: Row = worksheet.getRow(toRow);
   dst.height = src.height;
@@ -97,7 +103,7 @@ export function insertRepeatingRows(
   worksheet: Worksheet,
   templateRow: number,
   extra: number,
-  maxCol = 19,
+  maxCol = 22,
 ): void {
   if (extra <= 0) return;
 
@@ -169,7 +175,9 @@ function fillWorksheet(ws: Worksheet, data: FillTemplateData): void {
   const PROBLEM_REPEAT_ROW = 37;
   const PROBLEM_LAST_PREBUILT = 42;
   const PROBLEM_PREBUILT = PROBLEM_LAST_PREBUILT - PROBLEM_FIRST_ROW + 1;
+  
   let totalRow = 28;
+  let dandoriTotalRow = 15;
 
   const dandori: DandoriEntry[] = data.dandori ?? [];
   const production: ProductionEntry[] = data.production ?? [];
@@ -179,18 +187,23 @@ function fillWorksheet(ws: Worksheet, data: FillTemplateData): void {
   if (dandori.length > 1) {
     const extra = dandori.length - 1;
     insertRepeatingRows(ws, DANDORI_TEMPLATE_ROW, extra);
+    dandoriTotalRow += extra;
     totalRow += extra;
   }
 
   dandori.forEach((item, i) => {
     const r = DANDORI_TEMPLATE_ROW + i;
     ws.getCell(`B${r}`).value = item.DandoriDate ?? '';
-    ws.getCell(`J${r}`).value = item.DandoriStart ?? '';
-    ws.getCell(`N${r}`).value = '~';
-    ws.getCell(`O${r}`).value = item.DandoriEnd ?? '';
-    ws.getCell(`Q${r}`).value = item.DandoriDuration ?? '';
-    ws.getCell(`R${r}`).value = 'Mnt';
+    ws.getCell(`K${r}`).value = item.DandoriStart ?? '';
+    ws.getCell(`L${r}`).value = '~';
+    ws.getCell(`M${r}`).value = item.DandoriEnd ?? '';
+    ws.getCell(`O${r}`).value = item.DandoriDuration ?? '';
+    ws.getCell(`S${r}`).value = 'Mnt';
+    ws.getCell(`T${r}`).value = item.DandoriPIC;
   });
+
+  ws.getCell(`O${dandoriTotalRow}`).value = data.totalDandori ?? '';
+  ws.getCell(`U${dandoriTotalRow}`).value = 'Mnt';
 
   // expand PRODUCTION block if more rows than pre-built capacity
   const prebuiltCapacity = PRODUCTION_LAST_PREBUILT - PRODUCTION_FIRST_ROW + 1;
@@ -209,17 +222,18 @@ function fillWorksheet(ws: Worksheet, data: FillTemplateData): void {
   production.forEach((item, i) => {
     const r = i === 0 ? productionFirstRowAfterShift : productionRepeatRowAfterShift + (i - 1);
     ws.getCell(`B${r}`).value = item.ProductionDate ?? '';
-    ws.getCell(`G${r}`).value = item.ProductionStart ?? '';
-    ws.getCell(`H${r}`).value = '~';
-    ws.getCell(`J${r}`).value = item.ProductionEnd ?? '';
-    ws.getCell(`L${r}`).value = item.Status ?? '';
-    ws.getCell(`N${r}`).value = item.ProductionDuration ?? '';
-    ws.getCell(`P${r}`).value = 'Mnt';
-    ws.getCell(`Q${r}`).value = item.ProductionPIC ?? '';
+    ws.getCell(`H${r}`).value = item.ProductionStart ?? '';
+    ws.getCell(`J${r}`).value = '~';
+    ws.getCell(`K${r}`).value = item.ProductionEnd ?? '';
+    ws.getCell(`M${r}`).value = item.Status ?? '';
+    ws.getCell(`O${r}`).value = item.ProductionDuration ?? '';
+    ws.getCell(`Q${r}`).value = 'Mnt';
+    ws.getCell(`R${r}`).value = item.ProductionCounter ?? '';
+    ws.getCell(`T${r}`).value = item.ProductionPIC ?? '';
   });
 
-  ws.getCell(`N${totalRow}`).value = data.totalProduction ?? '';
-  ws.getCell(`R${totalRow}`).value = 'Mnt';
+  ws.getCell(`Q${totalRow}`).value = data.totalProduction ?? '';
+  ws.getCell(`U${totalRow}`).value = 'Mnt';
 
   // expand PROBLEM block if more rows than pre-built capacity
   const productionShift = production.length > prebuiltCapacity ? production.length - prebuiltCapacity : 0;
@@ -241,8 +255,16 @@ function fillWorksheet(ws: Worksheet, data: FillTemplateData): void {
     ws.getCell(`G${r}`).value = item.ProblemEnd ?? '';
     ws.getCell(`H${r}`).value = item.ProblemDuration ?? '';
     ws.getCell(`I${r}`).value = 'Mnt';
-    ws.getCell(`J${r}`).value = item.ProblemPIC ?? '';
+    ws.getCell(`J${r}`).value = item.ProblemStatus ?? '';
+    ws.getCell(`K${r}`).value = item.ProblemPIC ?? '';
+    ws.getCell(`L${r}`).value = item.ProblemDescription;
   });
+
+  const problemExtra = problem.length > PROBLEM_PREBUILT ? problem.length - PROBLEM_PREBUILT : 0;
+  const problemTotalRow = problemLastPrebuiltAfterShift + problemExtra + 1;
+
+  ws.getCell(`H${problemTotalRow}`).value = data.totalProblem ?? '';
+  ws.getCell(`I${problemTotalRow}`).value = 'Mnt';
 
   replacePlaceholders(ws, data.header ?? {});
 }
