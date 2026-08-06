@@ -15,7 +15,7 @@ export interface ProductionEntry {
   ProductionStart: string;    // e.g. "09:00"
   ProductionEnd: string;      // e.g. "17:00"
   ProductionDuration: number; // minutes, e.g. 480
-  ProductionCounter: number;
+  ProductionCounter?: number | null;
   Status: string;             // e.g. "Dandori"
   ProductionPIC: string;      // person in charge name
 }
@@ -272,6 +272,7 @@ function fillWorksheet(ws: Worksheet, data: FillTemplateData): void {
   ws.getCell(`I${problemTotalRow}`).value = 'Mnt';
 
   ws.getCell(`E${problemTotalRow + 2}`).value = "KCFPD-F-004";
+  ws.getCell(`J${problemTotalRow + 2}`).value = "REV.4"
   ws.getCell(`T${problemTotalRow + 2}`).value = "10 Tahun";
 
   replacePlaceholders(ws, data.header ?? {});

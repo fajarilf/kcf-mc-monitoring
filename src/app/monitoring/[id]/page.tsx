@@ -233,7 +233,7 @@ export default function MachineDetailPage() {
             ProductionDuration: durationMinutes(seg.start, seg.end),
             Status: statusLabel[seg.status],
             ProductionPIC: group.user || "-",
-            ProductionCounter: group.counter
+            ProductionCounter: seg.status === MACHINE_STATUS.RUNNING ? seg.counter : null,
           })),
       );
 
