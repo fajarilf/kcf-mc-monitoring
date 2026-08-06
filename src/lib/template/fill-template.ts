@@ -49,6 +49,7 @@ export interface FillTemplateData {
   totalDandori: number;
   totalProduction: number;
   totalProblem: number;
+  totalProductCounter: number;
 }
 
 /** A single-row merge span, expressed as 1-based [startColumn, endColumn]. */
@@ -235,8 +236,9 @@ function fillWorksheet(ws: Worksheet, data: FillTemplateData): void {
     ws.getCell(`T${r}`).value = item.ProductionPIC ?? '';
   });
 
-  ws.getCell(`Q${totalRow}`).value = data.totalProduction ?? '';
-  ws.getCell(`U${totalRow}`).value = 'Mnt';
+  ws.getCell(`O${totalRow}`).value = data.totalProduction ?? '';
+  ws.getCell(`Q${totalRow}`).value = 'Mnt';
+  ws.getCell(`R${totalRow}`).value = data.totalProductCounter ?? '';
 
   // expand PROBLEM block if more rows than pre-built capacity
   const productionShift = production.length > prebuiltCapacity ? production.length - prebuiltCapacity : 0;
@@ -269,8 +271,8 @@ function fillWorksheet(ws: Worksheet, data: FillTemplateData): void {
   ws.getCell(`H${problemTotalRow}`).value = data.totalProblem ?? '';
   ws.getCell(`I${problemTotalRow}`).value = 'Mnt';
 
-  ws.getCell(`E${problemTotalRow + 2}`).value = "";
-  ws.getCell(`T${problemTotalRow + 2}`).value = "";
+  ws.getCell(`E${problemTotalRow + 2}`).value = "KCFPD-F-004";
+  ws.getCell(`T${problemTotalRow + 2}`).value = "10 Tahun";
 
   replacePlaceholders(ws, data.header ?? {});
 }
