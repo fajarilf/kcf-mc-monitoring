@@ -306,30 +306,46 @@ export default function MachineDetailPage() {
     setDownloadError(null);
 
     try {
-      const response = await fetch('/api/export-template', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(previewData),
-      });
+      for (let i = 0; i < previewData.length; i++) {
+        const data = previewData[i];
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Export failed: ${errorText}`);
+        const response = await fetch('/api/export-template', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify([data]),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Export failed for ${data.header.PartNo}: ${errorText}`);
+        }
+
+        const blob = await response.blob();
+        const machineName = machine?.name ?? "";
+        const partNo = data.header.PartNo ?? "";
+        const firstDandoriDate = data.dandori[0]?.DandoriDate ?? startDate;
+
+        // Convert YYYY-MM-DD to YYMMDD
+        const [year, month, day] = firstDandoriDate.split('-');
+        const dateStr = `${year.slice(2)}${month}${day}`;
+
+        const filename = `Productivitas_${machineName}_${partNo}_${dateStr}.xlsx`;
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        // Delay between downloads to avoid browser issues
+        if (i < previewData.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
       }
 
-      const blob = await response.blob();
-      const dateStr = new Date().toISOString().split('T')[0];
-      const machineName = machine?.name ?? "";
-      const filename = `report-${machineName}-${dateStr}.xlsx`;
-
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
       setPreviewOpen(false);
     } catch (err) {
       console.error("Export download failed:", err);
