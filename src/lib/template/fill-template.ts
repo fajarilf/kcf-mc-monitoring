@@ -84,12 +84,70 @@ function getRowMergeSpans(worksheet: Worksheet, rowNumber: number): ColumnSpan[]
 function copyRowStyle(worksheet: Worksheet, fromRow: number, toRow: number): void {
   const src: Row = worksheet.getRow(fromRow);
   const dst: Row = worksheet.getRow(toRow);
-  dst.height = src.height;
+  // dst.height = src.height;
   
   // Dynamically detect all cells with styles in the source row
   src.eachCell({ includeEmpty: true }, (cell, colNumber) => {
     if (cell.style) {
       dst.getCell(colNumber).style = { ...cell.style };
+    }
+  });
+}
+
+/**
+ * Adjust row heights for cells with wrapped text.
+ * Calculates the required height based on text content, column width, and merges.
+ */
+function adjustWrappedTextRowHeights(worksheet: Worksheet): void {
+  const BASE_HEIGHT = 15; // points for single line (11pt font)
+  const LINE_HEIGHT = 15; // points per additional line
+
+  worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+    let maxLines = 1;
+
+    row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+      // Check if cell has wrapText alignment
+      if (cell.alignment?.wrapText && cell.value) {
+        const text = String(cell.value);
+        const lines = text.split('\n');
+
+        // Get effective column width (handle merged cells)
+        let effectiveWidth = worksheet.getColumn(colNumber).width || 10;
+
+        // Check if cell is part of a merge and sum widths
+        const merges = worksheet.model.merges as string[];
+        for (const range of merges) {
+          const [startAddr, endAddr] = range.split(':');
+          const start = worksheet.getCell(startAddr).fullAddress;
+          const end = worksheet.getCell(endAddr).fullAddress;
+
+          if (start.row === rowNumber && end.row === rowNumber &&
+              colNumber >= start.col && colNumber <= end.col) {
+            // Cell is in a horizontal merge, sum all column widths
+            effectiveWidth = 0;
+            for (let c = start.col; c <= end.col; c++) {
+              effectiveWidth += worksheet.getColumn(c).width || 10;
+            }
+            break;
+          }
+        }
+
+        // Estimate characters per line (rough: 1 char ≈ 0.1 of column width unit)
+        const charsPerLine = Math.max(1, Math.floor(effectiveWidth * 1.2));
+
+        // Calculate total lines needed
+        let totalLines = 0;
+        for (const line of lines) {
+          totalLines += Math.max(1, Math.ceil(line.length / charsPerLine));
+        }
+
+        maxLines = Math.max(maxLines, totalLines);
+      }
+    });
+
+    // Set row height if wrapped text needs more space
+    if (maxLines > 1) {
+      row.height = BASE_HEIGHT + (maxLines - 1) * LINE_HEIGHT;
     }
   });
 }
@@ -272,10 +330,13 @@ function fillWorksheet(ws: Worksheet, data: FillTemplateData): void {
   ws.getCell(`I${problemTotalRow}`).value = 'Mnt';
 
   ws.getCell(`E${problemTotalRow + 2}`).value = "KCFPD-F-004";
-  ws.getCell(`J${problemTotalRow + 2}`).value = "REV.4"
+  ws.getCell(`H${problemTotalRow + 2}`).value = "REV.4"
   ws.getCell(`T${problemTotalRow + 2}`).value = "10 Tahun";
 
   replacePlaceholders(ws, data.header ?? {});
+
+  // Adjust row heights for wrapped text
+  adjustWrappedTextRowHeights(ws);
 }
 
 /** Replace characters that are forbidden in Excel worksheet names. */
