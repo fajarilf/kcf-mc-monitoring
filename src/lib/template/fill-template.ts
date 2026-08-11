@@ -84,7 +84,7 @@ function getRowMergeSpans(worksheet: Worksheet, rowNumber: number): ColumnSpan[]
 function copyRowStyle(worksheet: Worksheet, fromRow: number, toRow: number): void {
   const src: Row = worksheet.getRow(fromRow);
   const dst: Row = worksheet.getRow(toRow);
-  // dst.height = src.height;
+  dst.height = src.height;
   
   // Dynamically detect all cells with styles in the source row
   src.eachCell({ includeEmpty: true }, (cell, colNumber) => {
@@ -99,7 +99,7 @@ function copyRowStyle(worksheet: Worksheet, fromRow: number, toRow: number): voi
  * Calculates the required height based on text content, column width, and merges.
  */
 function adjustWrappedTextRowHeights(worksheet: Worksheet): void {
-  const BASE_HEIGHT = 15; // points for single line (11pt font)
+  const BASE_HEIGHT = 18; // points for single line (11pt font)
   const LINE_HEIGHT = 15; // points per additional line
 
   worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
