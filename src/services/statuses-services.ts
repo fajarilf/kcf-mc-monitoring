@@ -24,6 +24,11 @@ class StatusTimelineService {
         const res = await api.get(`${this.base_url}/timeline/${id}`, { params });
         return res.data as StatusTimelineByIdResponse;
     }
+
+    async getTimelineLatestProduct(params?: StatusTimelineParams): Promise<StatusTimelineResponse> {
+        const res = await api.get(`${this.base_url}/timeline/latest-product`, { params });
+        return res.data as StatusTimelineResponse;
+    }
 }
 
 export const statusTimelineService = new StatusTimelineService();
