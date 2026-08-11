@@ -65,7 +65,6 @@ export function MachineActivityTable({ machineId, startDate, endDate }: Props) {
         status: seg.status,
       };
     })
-      .filter((seg) => seg.duration >= 1 / 60);
     return segments.reverse();
   }, [data?.data, now]);
 
