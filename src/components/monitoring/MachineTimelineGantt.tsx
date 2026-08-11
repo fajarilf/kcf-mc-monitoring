@@ -337,6 +337,7 @@ export function MachineTimelineGantt({ machineId, startDate, endDate, selectedPa
         unitLabel="h"
         tickCount={days === 1 ? 12 : Math.min(days, 10)}
         hideLabels
+        hideLegend
         formatTick={handleFormatTick}
         formatClock={handleFormatClock}
       />

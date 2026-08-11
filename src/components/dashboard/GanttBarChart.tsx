@@ -18,6 +18,7 @@ interface Props {
   formatTick?: (n: number) => string;
   formatClock?: (unit: number) => string;
   hideLabels?: boolean;
+  hideLegend?: boolean;
   rowHeight?: number;
 }
 
@@ -29,6 +30,7 @@ export const GanttBarChart = memo(function GanttBarChart({
   formatTick,
   formatClock,
   hideLabels = false,
+  hideLegend = false,
   rowHeight,
 }: Props) {
   const stepSize = Math.max(1, Math.round(totalUnits / tickCount));
@@ -61,7 +63,7 @@ export const GanttBarChart = memo(function GanttBarChart({
     () =>
       rows.map((r) => {
         const total = r.segments
-          .filter((s) => s.status !== MACHINE_STATUS.DANDORI)
+          .filter((s) => s.status !== MACHINE_STATUS.DANDORI && s.status !== MACHINE_STATUS.OFF)
           .reduce((sum, s) => sum + s.duration, 0);
         if (total === 0) return 0;
         const running = r.segments
@@ -75,9 +77,11 @@ export const GanttBarChart = memo(function GanttBarChart({
   const rowEnds = useMemo(
     () =>
       rows.map((r) => {
-        const nonDandori = r.segments.filter((s) => s.status !== MACHINE_STATUS.DANDORI);
-        if (nonDandori.length === 0) return 0;
-        return Math.max(...nonDandori.map((s) => s.start + s.duration));
+        const nonExcluded = r.segments.filter(
+          (s) => s.status !== MACHINE_STATUS.DANDORI && s.status !== MACHINE_STATUS.OFF,
+        );
+        if (nonExcluded.length === 0) return 0;
+        return Math.max(...nonExcluded.map((s) => s.start + s.duration));
       }),
     [rows],
   );
@@ -115,23 +119,25 @@ export const GanttBarChart = memo(function GanttBarChart({
 
   return (
     <div className="w-full pe-6">
-      <div className="mb-3 flex flex-wrap gap-4 text-xs">
-        {[
-          MACHINE_STATUS.OFF,
-          MACHINE_STATUS.RUNNING,
-          MACHINE_STATUS.CYOKOTEI_STOP,
-          MACHINE_STATUS.DANDORI,
-          MACHINE_STATUS.SETUP,
-        ].map((s) => (
-          <div key={s} className="flex items-center gap-2">
-            <span
-              className="inline-block size-3 rounded-none"
-              style={{ backgroundColor: statusFillHex[s] }}
-            />
-            <span className="text-muted-foreground">{statusLabel[s]}</span>
-          </div>
-        ))}
-      </div>
+      {!hideLegend && (
+        <div className="mb-3 flex flex-wrap gap-4 text-xs">
+          {[
+            MACHINE_STATUS.OFF,
+            MACHINE_STATUS.RUNNING,
+            MACHINE_STATUS.CYOKOTEI_STOP,
+            MACHINE_STATUS.DANDORI,
+            MACHINE_STATUS.SETUP,
+          ].map((s) => (
+            <div key={s} className="flex items-center gap-2">
+              <span
+                className="inline-block size-3 rounded-none"
+                style={{ backgroundColor: statusFillHex[s] }}
+              />
+              <span className="text-muted-foreground">{statusLabel[s]}</span>
+            </div>
+          ))}
+        </div>
+      )}
       <div style={{ height }} className="relative flex w-full select-none pb-6">
         {!hideLabels && (
           <div
