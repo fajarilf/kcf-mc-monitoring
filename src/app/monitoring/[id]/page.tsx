@@ -329,7 +329,7 @@ export default function MachineDetailPage() {
         const [year, month, day] = firstDandoriDate.split('-');
         const dateStr = `${year.slice(2)}${month}${day}`;
 
-        const filename = `Productivitas_${machineName}_${partNo}_${dateStr}.xlsx`;
+        const filename = `Produktivitas_${machineName}_${partNo}_${dateStr}.xlsx`;
 
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
