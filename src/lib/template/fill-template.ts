@@ -103,10 +103,14 @@ function adjustWrappedTextRowHeights(worksheet: Worksheet): void {
   const LINE_HEIGHT = 15; // points per additional line
 
   worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+    // Skip first 11 rows (header section)
+    if (rowNumber <= 11) return;
+
     let maxLines = 1;
 
     row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
       // Check if cell has wrapText alignment
+
       if (cell.alignment?.wrapText && cell.value) {
         const text = String(cell.value);
         const lines = text.split('\n');
