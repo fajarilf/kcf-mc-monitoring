@@ -57,6 +57,28 @@ export const GanttBarChart = memo(function GanttBarChart({
     [rows.length, rowH],
   );
 
+  const runningPcts = useMemo(
+    () =>
+      rows.map((r) => {
+        const total = r.segments.reduce((sum, s) => sum + s.duration, 0);
+        if (total === 0) return 0;
+        const running = r.segments
+          .filter((s) => s.status === MACHINE_STATUS.RUNNING)
+          .reduce((sum, s) => sum + s.duration, 0);
+        return (running / total) * 100;
+      }),
+    [rows],
+  );
+
+  const rowEnds = useMemo(
+    () =>
+      rows.map((r) => {
+        if (r.segments.length === 0) return 0;
+        return Math.max(...r.segments.map((s) => s.start + s.duration));
+      }),
+    [rows],
+  );
+
   const [hover, setHover] = useState<{
     label: string;
     statusLabel: string;
@@ -89,7 +111,7 @@ export const GanttBarChart = memo(function GanttBarChart({
   }, [hover, formatClock, unitLabel]);
 
   return (
-    <div className="w-full">
+    <div className="w-full pe-6">
       <div className="mb-3 flex flex-wrap gap-4 text-xs">
         {[
           MACHINE_STATUS.OFF,
@@ -151,12 +173,41 @@ export const GanttBarChart = memo(function GanttBarChart({
               </div>
             );
           })}
-          {rows.map((row) => (
+          {rows.map((row, i) => (
             <div
               key={row.machineId}
               className="relative"
               style={{ height: rowH }}
             >
+              {(() => {
+                const leftPct = (rowEnds[i] / totalUnits) * 100;
+                const nearEdge = leftPct >= 90;
+                const hasRunning = row.segments.some(
+                  (s) => s.status === MACHINE_STATUS.RUNNING,
+                );
+                if (!hasRunning) return null;
+                return (
+                  <span
+                    className="absolute top-1/2 -translate-y-1/2 z-10 font-semibold whitespace-nowrap rounded px-1"
+                    style={{
+                      fontSize: 16,
+                      ...(nearEdge
+                        ? { right: 4 }
+                        : { left: `calc(${leftPct}% + 4px)` }),
+                      color: runningPcts[i] >= 85
+                        ? statusFillHex[MACHINE_STATUS.RUNNING]
+                        : runningPcts[i] >= 60
+                          ? "#eab308"
+                          : "#f43f5e",
+                      backgroundColor: isDark
+                        ? "rgba(15, 23, 42, 0.7)"
+                        : "rgba(255, 255, 255, 0.7)",
+                    }}
+                  >
+                    {runningPcts[i].toFixed(1)}%
+                  </span>
+                );
+              })()}
               {row.segments.map((seg, si) => {
                 const leftPct = (seg.start / totalUnits) * 100;
                 const widthPct = (seg.duration / totalUnits) * 100;

@@ -18,6 +18,7 @@ import {
   ComboboxItem,
   ComboboxList,
 } from "@/components/ui/combobox";
+import { MACHINE_STATUS, statusFillHex, statusLabel } from "@/lib/status";
 import { MachineActivityChartSkeleton } from "./Skeleton";
 
 const MS_PER_HOUR = 1000 * 60 * 60;
@@ -183,6 +184,29 @@ export function MachineTimelineGantt({ machineId, startDate, endDate, selectedPa
     ];
   }, [timelineData?.data, machineId, chartNow, windowStartMs, windowHours, product?.partNo]);
 
+  const statusSummary = useMemo(() => {
+    if (chartNow === null) return new Map<MACHINE_STATUS, { totalMinutes: number; count: number }>();
+    const groups = timelineData?.data?.production ?? [];
+    const filtered = product?.partNo
+      ? groups.filter((g) => g.partNo === product.partNo)
+      : groups;
+
+    const summary = new Map<MACHINE_STATUS, { totalMinutes: number; count: number }>();
+    for (const group of filtered) {
+      for (const seg of group.timeline) {
+        const startMs = new Date(seg.start).getTime();
+        const endMs = seg.end ? new Date(seg.end).getTime() : chartNow;
+        const minutes = (endMs - startMs) / 60_000;
+        const existing = summary.get(seg.status) ?? { totalMinutes: 0, count: 0 };
+        summary.set(seg.status, {
+          totalMinutes: existing.totalMinutes + minutes,
+          count: existing.count + 1,
+        });
+      }
+    }
+    return summary;
+  }, [timelineData?.data, product, chartNow]);
+
   const handleFormatTick = useCallback(
     (h: number) => {
       if (days > 1 && h % 24 === 0) {
@@ -211,67 +235,99 @@ export function MachineTimelineGantt({ machineId, startDate, endDate, selectedPa
 
   return (
     <div className="flex flex-col gap-4 px-4">
-      <div className="flex items-center justify-end gap-10">
-        <Combobox
-          items={productList}
-          value={product}
-          onValueChange={(data) => {
-            if (data?.id === 0) onSelectedPartNoChange?.(null);
-            else onSelectedPartNoChange?.(data?.partNo ?? null);
-            if (data) setTimeout(() => productInputRef.current?.blur(), 0);
-          }}
-          itemToStringLabel={(item: ProductData) => item.partNo}
-        >
-          <ComboboxInput
-            ref={productInputRef}
-            className="rounded-sm"
-            placeholder="Select a Product"
-            onFocus={() => {
-              onSelectedPartNoChange?.(null);
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-wrap gap-3">
+          {[
+            MACHINE_STATUS.RUNNING,
+            MACHINE_STATUS.CYOKOTEI_STOP,
+            MACHINE_STATUS.DANDORI,
+            MACHINE_STATUS.SETUP,
+            MACHINE_STATUS.OFF,
+          ].map((s) => {
+            const info = statusSummary.get(s);
+            if (!info) return null;
+            return (
+              <div
+                key={s}
+                className="flex items-center gap-2 rounded-sm border px-2 py-1"
+              >
+                <span
+                  className="inline-block size-3 rounded-none"
+                  style={{ backgroundColor: statusFillHex[s] }}
+                />
+                <span className="text-muted-foreground">{statusLabel[s]}</span>
+                <span className="font-semibold tabular-nums">
+                  {Math.round(info.totalMinutes)} m
+                </span>
+                {s !== MACHINE_STATUS.RUNNING && (
+                  <span className="text-muted-foreground">| {info.count}×</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div className="flex items-center justify-end gap-4">
+          <Combobox
+            items={productList}
+            value={product}
+            onValueChange={(data) => {
+              if (data?.id === 0) onSelectedPartNoChange?.(null);
+              else onSelectedPartNoChange?.(data?.partNo ?? null);
+              if (data) setTimeout(() => productInputRef.current?.blur(), 0);
             }}
-          />
-          <ComboboxContent>
-            <ComboboxEmpty>No Product Found</ComboboxEmpty>
-            <ComboboxList>
-              {(item: ProductData) => (
-                <ComboboxItem key={item.id} value={item}>
-                  {item.partNo}
-                </ComboboxItem>
-              )}
-            </ComboboxList>
-          </ComboboxContent>
-        </Combobox>
-        <Combobox
-          items={userList}
-          value={user}
-          onValueChange={(data) => {
-            if (data?.id === 0) setUser(null);
-            else setUser(data);
-            if (data) setTimeout(() => userInputRef.current?.blur(), 0);
-          }}
-          onInputValueChange={(value) => setSearchUser(value)}
-          itemToStringLabel={(item: UserData) => item.name}
-        >
-          <ComboboxInput
-            ref={userInputRef}
-            className="rounded-sm"
-            placeholder="Select an User"
-            onFocus={() => {
-              setUser(null);
-              setSearchUser(undefined);
+            itemToStringLabel={(item: ProductData) => item.partNo}
+          >
+            <ComboboxInput
+              ref={productInputRef}
+              className="rounded-sm"
+              placeholder="Select a Product"
+              onFocus={() => {
+                onSelectedPartNoChange?.(null);
+              }}
+            />
+            <ComboboxContent>
+              <ComboboxEmpty>No Product Found</ComboboxEmpty>
+              <ComboboxList>
+                {(item: ProductData) => (
+                  <ComboboxItem key={item.id} value={item}>
+                    {item.partNo}
+                  </ComboboxItem>
+                )}
+              </ComboboxList>
+            </ComboboxContent>
+          </Combobox>
+          <Combobox
+            items={userList}
+            value={user}
+            onValueChange={(data) => {
+              if (data?.id === 0) setUser(null);
+              else setUser(data);
+              if (data) setTimeout(() => userInputRef.current?.blur(), 0);
             }}
-          />
-          <ComboboxContent>
-            <ComboboxEmpty>No User Found</ComboboxEmpty>
-            <ComboboxList>
-              {(item: UserData) => (
-                <ComboboxItem key={item.id} value={item}>
-                  {item.name}
-                </ComboboxItem>
-              )}
-            </ComboboxList>
-          </ComboboxContent>
-        </Combobox>
+            onInputValueChange={(value) => setSearchUser(value)}
+            itemToStringLabel={(item: UserData) => item.name}
+          >
+            <ComboboxInput
+              ref={userInputRef}
+              className="rounded-sm"
+              placeholder="Select an User"
+              onFocus={() => {
+                setUser(null);
+                setSearchUser(undefined);
+              }}
+            />
+            <ComboboxContent>
+              <ComboboxEmpty>No User Found</ComboboxEmpty>
+              <ComboboxList>
+                {(item: UserData) => (
+                  <ComboboxItem key={item.id} value={item}>
+                    {item.name}
+                  </ComboboxItem>
+                )}
+              </ComboboxList>
+            </ComboboxContent>
+          </Combobox>
+        </div>
       </div>
       <GanttBarChart
         rows={rows}
