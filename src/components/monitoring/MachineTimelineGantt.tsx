@@ -186,6 +186,7 @@ export function MachineTimelineGantt({ machineId, startDate, endDate, selectedPa
 
   const statusSummary = useMemo(() => {
     if (chartNow === null) return new Map<MACHINE_STATUS, { totalMinutes: number; count: number }>();
+    const windowEndMs = windowStartMs + windowHours * MS_PER_HOUR;
     const groups = timelineData?.data?.production ?? [];
     const filtered = product?.partNo
       ? groups.filter((g) => g.partNo === product.partNo)
@@ -194,9 +195,11 @@ export function MachineTimelineGantt({ machineId, startDate, endDate, selectedPa
     const summary = new Map<MACHINE_STATUS, { totalMinutes: number; count: number }>();
     for (const group of filtered) {
       for (const seg of group.timeline) {
-        const startMs = new Date(seg.start).getTime();
-        const endMs = seg.end ? new Date(seg.end).getTime() : chartNow;
-        const minutes = (endMs - startMs) / 60_000;
+        const segStartMs = new Date(seg.start).getTime();
+        const segEndMs = seg.end ? new Date(seg.end).getTime() : chartNow;
+        const clampedStartMs = Math.max(windowStartMs, Math.min(windowEndMs, segStartMs));
+        const clampedEndMs = Math.max(windowStartMs, Math.min(windowEndMs, segEndMs));
+        const minutes = (clampedEndMs - clampedStartMs) / 60_000;
         if (minutes < 1) continue;
         const existing = summary.get(seg.status) ?? { totalMinutes: 0, count: 0 };
         summary.set(seg.status, {
@@ -206,7 +209,7 @@ export function MachineTimelineGantt({ machineId, startDate, endDate, selectedPa
       }
     }
     return summary;
-  }, [timelineData?.data, product, chartNow]);
+  }, [timelineData?.data, product, chartNow, windowStartMs, windowHours]);
 
   const handleFormatTick = useCallback(
     (h: number) => {
