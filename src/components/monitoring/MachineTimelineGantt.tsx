@@ -248,8 +248,7 @@ export function MachineTimelineGantt({ machineId, startDate, endDate, selectedPa
             MACHINE_STATUS.SETUP,
             MACHINE_STATUS.OFF,
           ].map((s) => {
-            const info = statusSummary.get(s);
-            if (!info) return null;
+            const info = statusSummary.get(s) ?? { totalMinutes: 0, count: 0 };
             return (
               <div
                 key={s}
