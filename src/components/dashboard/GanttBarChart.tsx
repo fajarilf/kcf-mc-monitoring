@@ -60,7 +60,9 @@ export const GanttBarChart = memo(function GanttBarChart({
   const runningPcts = useMemo(
     () =>
       rows.map((r) => {
-        const total = r.segments.reduce((sum, s) => sum + s.duration, 0);
+        const total = r.segments
+          .filter((s) => s.status !== MACHINE_STATUS.DANDORI)
+          .reduce((sum, s) => sum + s.duration, 0);
         if (total === 0) return 0;
         const running = r.segments
           .filter((s) => s.status === MACHINE_STATUS.RUNNING)
@@ -73,8 +75,9 @@ export const GanttBarChart = memo(function GanttBarChart({
   const rowEnds = useMemo(
     () =>
       rows.map((r) => {
-        if (r.segments.length === 0) return 0;
-        return Math.max(...r.segments.map((s) => s.start + s.duration));
+        const nonDandori = r.segments.filter((s) => s.status !== MACHINE_STATUS.DANDORI);
+        if (nonDandori.length === 0) return 0;
+        return Math.max(...nonDandori.map((s) => s.start + s.duration));
       }),
     [rows],
   );
