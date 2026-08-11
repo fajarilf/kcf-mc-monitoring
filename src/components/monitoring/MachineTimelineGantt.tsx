@@ -197,6 +197,7 @@ export function MachineTimelineGantt({ machineId, startDate, endDate, selectedPa
         const startMs = new Date(seg.start).getTime();
         const endMs = seg.end ? new Date(seg.end).getTime() : chartNow;
         const minutes = (endMs - startMs) / 60_000;
+        if (minutes < 1) continue;
         const existing = summary.get(seg.status) ?? { totalMinutes: 0, count: 0 };
         summary.set(seg.status, {
           totalMinutes: existing.totalMinutes + minutes,
