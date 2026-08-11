@@ -9,6 +9,7 @@ import {
   statusLabel,
   withAlpha,
 } from "@/lib/status";
+import { useStatusTimelineLatestProductHook } from "@/hooks/use-status-hook";
 
 interface Props {
   rows: GanttRow[];
@@ -20,6 +21,8 @@ interface Props {
   hideLabels?: boolean;
   hideLegend?: boolean;
   rowHeight?: number;
+  machineId?: string;
+  nowMs?: number;
 }
 
 export const GanttBarChart = memo(function GanttBarChart({
@@ -32,6 +35,8 @@ export const GanttBarChart = memo(function GanttBarChart({
   hideLabels = false,
   hideLegend = false,
   rowHeight,
+  machineId,
+  nowMs,
 }: Props) {
   const stepSize = Math.max(1, Math.round(totalUnits / tickCount));
   const ticks = useMemo(() => {
@@ -59,20 +64,36 @@ export const GanttBarChart = memo(function GanttBarChart({
     [rows.length, rowH],
   );
 
-  const runningPcts = useMemo(
-    () =>
-      rows.map((r) => {
-        const total = r.segments
-          .filter((s) => s.status !== MACHINE_STATUS.DANDORI && s.status !== MACHINE_STATUS.OFF)
-          .reduce((sum, s) => sum + s.duration, 0);
-        if (total === 0) return 0;
-        const running = r.segments
-          .filter((s) => s.status === MACHINE_STATUS.RUNNING)
-          .reduce((sum, s) => sum + s.duration, 0);
-        return (running / total) * 100;
-      }),
-    [rows],
+  const { data: latestProductData } = useStatusTimelineLatestProductHook(
+    machineId ? { machineId: Number(machineId), paginate: false } : { paginate: false },
   );
+
+  const runningPcts = useMemo(() => {
+    const fallbackNow = nowMs ?? new Date().getTime();
+    const latestMap = new Map<string, { runningMin: number; totalMin: number }>();
+    for (const m of latestProductData?.data ?? []) {
+      let runningMin = 0;
+      let totalMin = 0;
+      for (const g of m.production) {
+        for (const seg of g.timeline) {
+          if (seg.status === MACHINE_STATUS.DANDORI || seg.status === MACHINE_STATUS.OFF) continue;
+          const startMs = new Date(seg.start).getTime();
+          const endMs = seg.end ? new Date(seg.end).getTime() : fallbackNow;
+          const minutes = (endMs - startMs) / 60_000;
+          if (minutes < 1) continue;
+          totalMin += minutes;
+          if (seg.status === MACHINE_STATUS.RUNNING) runningMin += minutes;
+        }
+      }
+      latestMap.set(String(m.machineId), { runningMin, totalMin });
+    }
+
+    return rows.map((r) => {
+      const data = latestMap.get(r.machineId);
+      if (!data || data.totalMin === 0) return 0;
+      return (data.runningMin / data.totalMin) * 100;
+    });
+  }, [rows, latestProductData, nowMs]);
 
   const rowEnds = useMemo(
     () =>

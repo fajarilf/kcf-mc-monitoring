@@ -313,6 +313,7 @@ export default function DashboardPage() {
               tickCount={viewMode === "24h" ? 12 : TICKS}
               formatTick={handleFormatTick}
               formatClock={handleFormatClock}
+              nowMs={chartNow ?? undefined}
             />
           )}
         </CardContent>

@@ -340,6 +340,8 @@ export function MachineTimelineGantt({ machineId, startDate, endDate, selectedPa
         hideLegend
         formatTick={handleFormatTick}
         formatClock={handleFormatClock}
+        machineId={machineId}
+        nowMs={chartNow ?? undefined}
       />
     </div>
   );

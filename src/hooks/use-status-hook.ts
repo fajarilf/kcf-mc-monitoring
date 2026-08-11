@@ -39,3 +39,13 @@ export function useStatusTimelineByIdHook(id: number, params?: StatusTimelinePar
         enabled: Number.isFinite(id) && id > 0,
     });
 }
+
+export function useStatusTimelineLatestProductHook(params?: StatusTimelineParams) {
+    return useQuery<StatusTimelineResponse, AxiosError<string>>({
+        queryKey: ["get-status-timeline-latest-product", params],
+        queryFn: () => statusTimelineService.getTimelineLatestProduct(params),
+        staleTime: 1000 * 10,
+        refetchOnWindowFocus: true,
+        placeholderData: keepPreviousData,
+    });
+}
