@@ -98,11 +98,8 @@ export const GanttBarChart = memo(function GanttBarChart({
   const rowEnds = useMemo(
     () =>
       rows.map((r) => {
-        const nonExcluded = r.segments.filter(
-          (s) => s.status !== MACHINE_STATUS.DANDORI && s.status !== MACHINE_STATUS.OFF,
-        );
-        if (nonExcluded.length === 0) return 0;
-        return Math.max(...nonExcluded.map((s) => s.start + s.duration));
+        if (r.segments.length === 0) return 0;
+        return Math.max(...r.segments.map((s) => s.start + s.duration));
       }),
     [rows],
   );
