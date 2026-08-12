@@ -200,6 +200,7 @@ export function MachineTimelineGantt({ machineId, startDate, endDate, selectedPa
         const clampedStartMs = Math.max(windowStartMs, Math.min(windowEndMs, segStartMs));
         const clampedEndMs = Math.max(windowStartMs, Math.min(windowEndMs, segEndMs));
         const minutes = (clampedEndMs - clampedStartMs) / 60_000;
+        if (minutes <= 0) continue;
         const existing = summary.get(seg.status) ?? { totalMinutes: 0, count: 0 };
         summary.set(seg.status, {
           totalMinutes: existing.totalMinutes + minutes,
