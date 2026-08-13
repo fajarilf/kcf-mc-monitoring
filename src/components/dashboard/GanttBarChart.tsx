@@ -209,10 +209,8 @@ export const GanttBarChart = memo(function GanttBarChart({
               {(() => {
                 const leftPct = (rowEnds[i] / totalUnits) * 100;
                 const nearEdge = leftPct >= 90;
-                const hasRunning = row.segments.some(
-                  (s) => s.status === MACHINE_STATUS.RUNNING,
-                );
-                if (!hasRunning) return null;
+                const pct = runningPcts[i];
+                if (pct <= 0) return null;
                 return (
                   <span
                     className="absolute top-1/2 -translate-y-1/2 z-10 font-semibold whitespace-nowrap rounded px-1"

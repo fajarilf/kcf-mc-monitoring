@@ -46,6 +46,7 @@ export function useStatusTimelineLatestProductHook(params?: StatusTimelineParams
         queryFn: () => statusTimelineService.getTimelineLatestProduct(params),
         staleTime: 1000 * 10,
         refetchOnWindowFocus: true,
+        refetchInterval: 30_000,
         placeholderData: keepPreviousData,
     });
 }
