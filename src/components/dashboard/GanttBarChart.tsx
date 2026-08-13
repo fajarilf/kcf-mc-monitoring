@@ -80,7 +80,7 @@ export const GanttBarChart = memo(function GanttBarChart({
           const startMs = new Date(seg.start).getTime();
           const endMs = seg.end ? new Date(seg.end).getTime() : fallbackNow;
           const minutes = (endMs - startMs) / 60_000;
-          if (minutes < 1) continue;
+          if (minutes <= 0) continue;
           totalMin += minutes;
           if (seg.status === MACHINE_STATUS.RUNNING) runningMin += minutes;
         }
