@@ -166,27 +166,22 @@ export default function MachineDetailPage() {
     const machineName = machine?.name ?? "";
     const products: ProductData[] = productData?.data ?? [];
 
-    const result: FillTemplateData[] = [];
+    const dandoriEntries = groups.flatMap((g) =>
+      g.timeline.filter((s) => {
+        if (s.status !== MACHINE_STATUS.DANDORI) return false;
+        const endMs = s.end ? new Date(s.end).getTime() : Date.now();
+        return endMs - new Date(s.start).getTime() >= 60_000;
+      }).map((seg) => ({
+        DandoriDate: toDateString(seg.start),
+        DandoriStart: toTimeString(seg.start),
+        DandoriEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
+        DandoriDuration: durationMinutes(seg.start, seg.end),
+        DandoriPIC: g.user
+      }))
+    );
 
-    for (const group of groups) {
-      const partNo = group.partNo || "-";
-      const product = products.find((p) => p.partNo === partNo);
-
-      const dandoriEntries = group.timeline
-        .filter((s) => {
-          if (s.status !== MACHINE_STATUS.DANDORI) return false;
-          const endMs = s.end ? new Date(s.end).getTime() : Date.now();
-          return endMs - new Date(s.start).getTime() >= 60_000;
-        })
-        .map((seg) => ({
-          DandoriDate: toDateString(seg.start),
-          DandoriStart: toTimeString(seg.start),
-          DandoriEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
-          DandoriDuration: durationMinutes(seg.start, seg.end),
-          DandoriPIC: group.user,
-        }));
-
-      const problemEntries = group.timeline
+    const problemEntries = groups.flatMap((g) =>
+      g.timeline
         .filter((s) => {
           if (s.status === MACHINE_STATUS.DANDORI || s.status === MACHINE_STATUS.RUNNING) return false;
           const endMs = s.end ? new Date(s.end).getTime() : Date.now();
@@ -197,43 +192,73 @@ export default function MachineDetailPage() {
           ProblemStart: toTimeString(seg.start),
           ProblemEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
           ProblemDuration: durationMinutes(seg.start, seg.end),
-          ProblemPIC: group.user || "-",
+          ProblemPIC: g.user || "-",
           ProblemStatus: statusLabel[seg.status],
-          ProblemDescription: seg.message,
-        }));
+          ProblemDescription: seg.message
+        })),
+    );
 
-      const productionEntries = group.timeline
-        .filter((s) => {
-          if (s.status === MACHINE_STATUS.DANDORI || s.status === MACHINE_STATUS.OFF) return false;
-          const endMs = s.end ? new Date(s.end).getTime() : Date.now();
-          return endMs - new Date(s.start).getTime() >= 60_000;
-        })
-        .map((seg) => ({
-          ProductionDate: toDateString(seg.start),
-          ProductionStart: toTimeString(seg.start),
-          ProductionEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
-          ProductionDuration: durationMinutes(seg.start, seg.end),
-          Status: statusLabel[seg.status],
-          ProductionPIC: group.user || "-",
-          ProductionCounter: seg.status === MACHINE_STATUS.RUNNING ? seg.counter : null,
-        }));
+    // Group production groups by partNo so multiple operators on the same
+    // product end up in a single worksheet instead of duplicate sheets.
+    const grouped = new Map<string, ProductionGroup[]>();
+    for (const group of groups) {
+      const key = group.partNo || "-";
+      const arr = grouped.get(key);
+      if (arr) arr.push(group);
+      else grouped.set(key, [group]);
+    }
+
+    const result: FillTemplateData[] = [];
+
+    for (const [partNo, mergedGroups] of grouped) {
+      const product = products.find((p) => p.partNo === partNo);
+
+      // Collect distinct operators across all merged groups
+      const operators = [
+        ...new Set(mergedGroups.map((g) => g.user).filter(Boolean)),
+      ].join(", ") || "-";
+
+      // Build production entries from all merged groups
+      const productionEntries = mergedGroups.flatMap((group) =>
+        group.timeline
+          .filter((s) => {
+            if (s.status === MACHINE_STATUS.DANDORI || s.status === MACHINE_STATUS.OFF) return false;
+            const endMs = s.end ? new Date(s.end).getTime() : Date.now();
+            return endMs - new Date(s.start).getTime() >= 60_000;
+          })
+          .map((seg) => ({
+            ProductionDate: toDateString(seg.start),
+            ProductionStart: toTimeString(seg.start),
+            ProductionEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
+            ProductionDuration: durationMinutes(seg.start, seg.end),
+            Status: statusLabel[seg.status],
+            ProductionPIC: group.user || "-",
+            ProductionCounter: seg.status === MACHINE_STATUS.RUNNING ? seg.counter : null,
+          })),
+      );
 
       const totalDandori = dandoriEntries.reduce(
         (sum, p) => sum + p.DandoriDuration,
-        0,
-      );
+        0
+      )
 
       const totalProblem = problemEntries.reduce(
         (sum, p) => sum + p.ProblemDuration,
-        0,
-      );
+        0
+      )
 
       const totalProduction = productionEntries.reduce(
         (sum, p) => sum + p.ProductionDuration,
         0,
       );
 
-      const totalCounterProduct = group.quantity;
+      // Sum quantity across all merged groups for the same product
+      const totalCounterProduct = mergedGroups.reduce(
+        (sum, g) => sum + g.quantity,
+        0,
+      );
+
+      const totalProductCounter = totalCounterProduct;
 
       const rpm = product?.rpm ?? 60;
       const sumOfBottom = Number(rpm) * totalProduction;
@@ -244,10 +269,10 @@ export default function MachineDetailPage() {
       result.push({
         header: {
           Date: startDate === endDate ? startDate : `${startDate} ~ ${endDate}`,
-          PartNo: partNo === "-" ? (product?.partNo ?? group.partNo ?? "-") : partNo,
-          PartName: product?.partName ?? group.productName ?? "-",
+          PartNo: partNo === "-" ? (product?.partNo ?? mergedGroups[0]?.partNo ?? "-") : partNo,
+          PartName: product?.partName ?? mergedGroups[0]?.productName ?? "-",
           Customer: product?.customer ?? "-",
-          Operators: group.user || "-",
+          Operators: operators,
           MachineName: machineName,
           Rpm: rpm.toString(),
           TotalCounterProduct: totalCounterProduct.toString(),
@@ -260,7 +285,7 @@ export default function MachineDetailPage() {
         totalProduction,
         totalDandori,
         totalProblem,
-        totalProductCounter: totalCounterProduct,
+        totalProductCounter,
       });
     }
 
