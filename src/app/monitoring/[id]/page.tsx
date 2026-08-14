@@ -166,38 +166,6 @@ export default function MachineDetailPage() {
     const machineName = machine?.name ?? "";
     const products: ProductData[] = productData?.data ?? [];
 
-    const dandoriEntries = groups.flatMap((g) =>
-      g.timeline.filter((s) => {
-        if (s.status !== MACHINE_STATUS.DANDORI) return false;
-        const endMs = s.end ? new Date(s.end).getTime() : Date.now();
-        return endMs - new Date(s.start).getTime() >= 60_000;
-      }).map((seg) => ({
-        DandoriDate: toDateString(seg.start),
-        DandoriStart: toTimeString(seg.start),
-        DandoriEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
-        DandoriDuration: durationMinutes(seg.start, seg.end),
-        DandoriPIC: g.user
-      }))
-    );
-
-    const problemEntries = groups.flatMap((g) =>
-      g.timeline
-        .filter((s) => {
-          if (s.status === MACHINE_STATUS.DANDORI || s.status === MACHINE_STATUS.RUNNING) return false;
-          const endMs = s.end ? new Date(s.end).getTime() : Date.now();
-          return endMs - new Date(s.start).getTime() >= 60_000;
-        })
-        .map((seg) => ({
-          ProblemDate: toDateString(seg.start),
-          ProblemStart: toTimeString(seg.start),
-          ProblemEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
-          ProblemDuration: durationMinutes(seg.start, seg.end),
-          ProblemPIC: g.user || "-",
-          ProblemStatus: statusLabel[seg.status],
-          ProblemDescription: seg.message
-        })),
-    );
-
     // Group production groups by partNo so multiple operators on the same
     // product end up in a single worksheet instead of duplicate sheets.
     const grouped = new Map<string, ProductionGroup[]>();
@@ -208,85 +176,158 @@ export default function MachineDetailPage() {
       else grouped.set(key, [group]);
     }
 
+    const GAP_THRESHOLD_MIN = 60;
+    const nowMs = Date.now();
+
+    // Split groups into contiguous time blocks per partNo.
+    // Two groups are contiguous if the gap between the previous group's
+    // latest end and the next group's earliest start is <= 60 minutes.
+    const splitIntoBlocks = (blockGroups: ProductionGroup[]): ProductionGroup[][] => {
+      const sorted = [...blockGroups].sort((a, b) => {
+        const aStart = Math.min(...a.timeline.map((s) => new Date(s.start).getTime()));
+        const bStart = Math.min(...b.timeline.map((s) => new Date(s.start).getTime()));
+        return aStart - bStart;
+      });
+
+      const blocks: ProductionGroup[][] = [];
+      let currentBlock: ProductionGroup[] = [];
+
+      for (const group of sorted) {
+        if (currentBlock.length === 0) {
+          currentBlock.push(group);
+          continue;
+        }
+        const prevGroup = currentBlock[currentBlock.length - 1];
+        const prevEnd = Math.max(
+          ...prevGroup.timeline.map((s) =>
+            s.end ? new Date(s.end).getTime() : nowMs,
+          ),
+        );
+        const nextStart = Math.min(
+          ...group.timeline.map((s) => new Date(s.start).getTime()),
+        );
+        if ((nextStart - prevEnd) / 60_000 > GAP_THRESHOLD_MIN) {
+          blocks.push(currentBlock);
+          currentBlock = [group];
+        } else {
+          currentBlock.push(group);
+        }
+      }
+      if (currentBlock.length > 0) blocks.push(currentBlock);
+      return blocks;
+    };
+
     const result: FillTemplateData[] = [];
 
     for (const [partNo, mergedGroups] of grouped) {
       const product = products.find((p) => p.partNo === partNo);
+      const blocks = splitIntoBlocks(mergedGroups);
 
-      // Collect distinct operators across all merged groups
-      const operators = [
-        ...new Set(mergedGroups.map((g) => g.user).filter(Boolean)),
-      ].join(", ") || "-";
+      for (const blockGroups of blocks) {
+        // Collect distinct operators across all groups in this block
+        const operators = [
+          ...new Set(blockGroups.map((g) => g.user).filter(Boolean)),
+        ].join(", ") || "-";
 
-      // Build production entries from all merged groups
-      const productionEntries = mergedGroups.flatMap((group) =>
-        group.timeline
-          .filter((s) => {
-            if (s.status === MACHINE_STATUS.DANDORI || s.status === MACHINE_STATUS.OFF) return false;
+        // Scope dandori, problem, and production entries to this block only
+        const dandoriEntries = blockGroups.flatMap((g) =>
+          g.timeline.filter((s) => {
+            if (s.status !== MACHINE_STATUS.DANDORI) return false;
             const endMs = s.end ? new Date(s.end).getTime() : Date.now();
             return endMs - new Date(s.start).getTime() >= 60_000;
-          })
-          .map((seg) => ({
-            ProductionDate: toDateString(seg.start),
-            ProductionStart: toTimeString(seg.start),
-            ProductionEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
-            ProductionDuration: durationMinutes(seg.start, seg.end),
-            Status: statusLabel[seg.status],
-            ProductionPIC: group.user || "-",
-            ProductionCounter: seg.status === MACHINE_STATUS.RUNNING ? seg.counter : null,
+          }).map((seg) => ({
+            DandoriDate: toDateString(seg.start),
+            DandoriStart: toTimeString(seg.start),
+            DandoriEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
+            DandoriDuration: durationMinutes(seg.start, seg.end),
+            DandoriPIC: g.user,
           })),
-      );
+        );
 
-      const totalDandori = dandoriEntries.reduce(
-        (sum, p) => sum + p.DandoriDuration,
-        0
-      )
+        const problemEntries = blockGroups.flatMap((g) =>
+          g.timeline
+            .filter((s) => {
+              if (s.status === MACHINE_STATUS.DANDORI || s.status === MACHINE_STATUS.RUNNING) return false;
+              const endMs = s.end ? new Date(s.end).getTime() : Date.now();
+              return endMs - new Date(s.start).getTime() >= 60_000;
+            })
+            .map((seg) => ({
+              ProblemDate: toDateString(seg.start),
+              ProblemStart: toTimeString(seg.start),
+              ProblemEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
+              ProblemDuration: durationMinutes(seg.start, seg.end),
+              ProblemPIC: g.user || "-",
+              ProblemStatus: statusLabel[seg.status],
+              ProblemDescription: seg.message,
+            })),
+        );
 
-      const totalProblem = problemEntries.reduce(
-        (sum, p) => sum + p.ProblemDuration,
-        0
-      )
+        const productionEntries = blockGroups.flatMap((group) =>
+          group.timeline
+            .filter((s) => {
+              if (s.status === MACHINE_STATUS.DANDORI || s.status === MACHINE_STATUS.OFF) return false;
+              const endMs = s.end ? new Date(s.end).getTime() : Date.now();
+              return endMs - new Date(s.start).getTime() >= 60_000;
+            })
+            .map((seg) => ({
+              ProductionDate: toDateString(seg.start),
+              ProductionStart: toTimeString(seg.start),
+              ProductionEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
+              ProductionDuration: durationMinutes(seg.start, seg.end),
+              Status: statusLabel[seg.status],
+              ProductionPIC: group.user || "-",
+              ProductionCounter: seg.status === MACHINE_STATUS.RUNNING ? seg.counter : null,
+            })),
+        );
 
-      const totalProduction = productionEntries.reduce(
-        (sum, p) => sum + p.ProductionDuration,
-        0,
-      );
+        const totalDandori = dandoriEntries.reduce(
+          (sum, p) => sum + p.DandoriDuration,
+          0,
+        );
 
-      // Sum quantity across all merged groups for the same product
-      const totalCounterProduct = mergedGroups.reduce(
-        (sum, g) => sum + g.quantity,
-        0,
-      );
+        const totalProblem = problemEntries.reduce(
+          (sum, p) => sum + p.ProblemDuration,
+          0,
+        );
 
-      const totalProductCounter = totalCounterProduct;
+        const totalProduction = productionEntries.reduce(
+          (sum, p) => sum + p.ProductionDuration,
+          0,
+        );
 
-      const rpm = product?.rpm ?? 60;
-      const sumOfBottom = Number(rpm) * totalProduction;
-      const resultValue = sumOfBottom > 0
-        ? ((totalCounterProduct / sumOfBottom) * 100).toFixed(2)
-        : "0";
+        const totalCounterProduct = blockGroups.reduce(
+          (sum, g) => sum + g.quantity,
+          0,
+        );
 
-      result.push({
-        header: {
-          Date: startDate === endDate ? startDate : `${startDate} ~ ${endDate}`,
-          PartNo: partNo === "-" ? (product?.partNo ?? mergedGroups[0]?.partNo ?? "-") : partNo,
-          PartName: product?.partName ?? mergedGroups[0]?.productName ?? "-",
-          Customer: product?.customer ?? "-",
-          Operators: operators,
-          MachineName: machineName,
-          Rpm: rpm.toString(),
-          TotalCounterProduct: totalCounterProduct.toString(),
-          SumofBottom: sumOfBottom.toString(),
-          Result: resultValue,
-        },
-        dandori: dandoriEntries,
-        production: productionEntries,
-        problem: problemEntries,
-        totalProduction,
-        totalDandori,
-        totalProblem,
-        totalProductCounter,
-      });
+        const rpm = product?.rpm ?? 60;
+        const sumOfBottom = Number(rpm) * totalProduction;
+        const resultValue = sumOfBottom > 0
+          ? ((totalCounterProduct / sumOfBottom) * 100).toFixed(2)
+          : "0";
+
+        result.push({
+          header: {
+            Date: startDate === endDate ? startDate : `${startDate} ~ ${endDate}`,
+            PartNo: partNo === "-" ? (product?.partNo ?? blockGroups[0]?.partNo ?? "-") : partNo,
+            PartName: product?.partName ?? blockGroups[0]?.productName ?? "-",
+            Customer: product?.customer ?? "-",
+            Operators: operators,
+            MachineName: machineName,
+            Rpm: rpm.toString(),
+            TotalCounterProduct: totalCounterProduct.toString(),
+            SumofBottom: sumOfBottom.toString(),
+            Result: resultValue,
+          },
+          dandori: dandoriEntries,
+          production: productionEntries,
+          problem: problemEntries,
+          totalProduction,
+          totalDandori,
+          totalProblem,
+          totalProductCounter: totalCounterProduct,
+        });
+      }
     }
 
     return result;
