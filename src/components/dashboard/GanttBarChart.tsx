@@ -10,12 +10,15 @@ import {
   withAlpha,
 } from "@/lib/status";
 import { useStatusTimelineLatestProductHook } from "@/hooks/use-status-hook";
+import type { MachineTimeline } from "@/model/status-model";
 
 interface Props {
   rows: GanttRow[];
   totalUnits: number;
   unitLabel: string;
   tickCount?: number;
+  /** Overrides the computed tick step (in axis units). Use for day-aligned multi-day ticks. */
+  tickStep?: number;
   formatTick?: (n: number) => string;
   formatClock?: (unit: number) => string;
   hideLabels?: boolean;
@@ -23,6 +26,8 @@ interface Props {
   rowHeight?: number;
   machineId?: string;
   nowMs?: number;
+  /** When provided, running-% is computed from this timeline instead of the latest-product hook. */
+  percentTimeline?: MachineTimeline | null;
 }
 
 export const GanttBarChart = memo(function GanttBarChart({
@@ -30,6 +35,7 @@ export const GanttBarChart = memo(function GanttBarChart({
   totalUnits,
   unitLabel,
   tickCount = 6,
+  tickStep,
   formatTick,
   formatClock,
   hideLabels = false,
@@ -37,8 +43,9 @@ export const GanttBarChart = memo(function GanttBarChart({
   rowHeight,
   machineId,
   nowMs,
+  percentTimeline,
 }: Props) {
-  const stepSize = Math.max(1, Math.round(totalUnits / tickCount));
+  const stepSize = tickStep ?? Math.max(1, Math.round(totalUnits / tickCount));
   const ticks = useMemo(() => {
     const arr: number[] = [];
     for (let v = 0; v <= totalUnits; v += stepSize) arr.push(v);
@@ -66,12 +73,14 @@ export const GanttBarChart = memo(function GanttBarChart({
 
   const { data: latestProductData } = useStatusTimelineLatestProductHook(
     machineId ? { machineId: Number(machineId), paginate: false } : { paginate: false },
+    !percentTimeline,
   );
 
   const runningPcts = useMemo(() => {
     const fallbackNow = nowMs ?? new Date().getTime();
     const latestMap = new Map<string, { runningMin: number; totalMin: number }>();
-    for (const m of latestProductData?.data ?? []) {
+    const machines = percentTimeline ? [percentTimeline] : (latestProductData?.data ?? []);
+    for (const m of machines) {
       let runningMin = 0;
       let totalMin = 0;
       for (const g of m.production) {
@@ -93,7 +102,7 @@ export const GanttBarChart = memo(function GanttBarChart({
       if (!data || data.totalMin === 0) return 0;
       return (data.runningMin / data.totalMin) * 100;
     });
-  }, [rows, latestProductData, nowMs]);
+  }, [rows, latestProductData, percentTimeline, nowMs]);
 
   const rowEnds = useMemo(
     () =>

@@ -40,7 +40,7 @@ export function useStatusTimelineByIdHook(id: number, params?: StatusTimelinePar
     });
 }
 
-export function useStatusTimelineLatestProductHook(params?: StatusTimelineParams) {
+export function useStatusTimelineLatestProductHook(params?: StatusTimelineParams, enabled = true) {
     return useQuery<StatusTimelineResponse, AxiosError<string>>({
         queryKey: ["get-status-timeline-latest-product", params],
         queryFn: () => statusTimelineService.getTimelineLatestProduct(params),
@@ -48,5 +48,6 @@ export function useStatusTimelineLatestProductHook(params?: StatusTimelineParams
         refetchOnWindowFocus: true,
         refetchInterval: 30_000,
         placeholderData: keepPreviousData,
+        enabled,
     });
 }

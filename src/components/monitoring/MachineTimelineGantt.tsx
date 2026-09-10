@@ -170,6 +170,16 @@ export function MachineTimelineGantt({ machineId, startDate, endDate, selectedPa
     return productList.find((p) => p.partNo === selectedPartNo) ?? null;
   }, [productList, selectedPartNo]);
 
+  // Feed running-% from the same byId timeline the chart shows; userId is already
+  // filtered server-side, so only the client-side part-number filter is applied here.
+  const percentTimeline = useMemo<MachineTimeline | null>(() => {
+    const data = timelineData?.data;
+    const partNo = product?.partNo;
+    if (!data) return null;
+    if (!partNo) return data;
+    return { ...data, production: data.production.filter((g) => g.partNo === partNo) };
+  }, [timelineData?.data, product?.partNo]);
+
   const rows = useMemo<GanttRow[]>(() => {
     if (chartNow === null) return [];
     return [
@@ -337,12 +347,14 @@ export function MachineTimelineGantt({ machineId, startDate, endDate, selectedPa
         totalUnits={windowHours}
         unitLabel="h"
         tickCount={days === 1 ? 12 : Math.min(days, 10)}
+        tickStep={days > 1 ? Math.max(1, Math.ceil(days / 10)) * 24 : undefined}
         hideLabels
         hideLegend
         formatTick={handleFormatTick}
         formatClock={handleFormatClock}
         machineId={machineId}
         nowMs={chartNow ?? undefined}
+        percentTimeline={percentTimeline}
       />
     </div>
   );
