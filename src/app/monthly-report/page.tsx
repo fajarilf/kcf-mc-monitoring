@@ -20,6 +20,11 @@ import { useDandoriReportHook } from "@/hooks/use-report";
 import type { MonthlyValues } from "@/model/report-model";
 
 const MONTHS: { key: keyof MonthlyValues; label: string }[] = [
+  { key: "jan", label: "Jan" },
+  { key: "feb", label: "Feb" },
+  { key: "mar", label: "Mar" },
+  { key: "apr", label: "Apr" },
+  { key: "may", label: "May" },
   { key: "jun", label: "Jun" },
   { key: "jul", label: "Jul" },
   { key: "aug", label: "Aug" },
@@ -27,11 +32,6 @@ const MONTHS: { key: keyof MonthlyValues; label: string }[] = [
   { key: "oct", label: "Oct" },
   { key: "nov", label: "Nov" },
   { key: "dec", label: "Dec" },
-  { key: "jan", label: "Jan" },
-  { key: "feb", label: "Feb" },
-  { key: "mar", label: "Mar" },
-  { key: "apr", label: "Apr" },
-  { key: "may", label: "May" },
 ];
 
 function formatValue(v: number | null): string {
