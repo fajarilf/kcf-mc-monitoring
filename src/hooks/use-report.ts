@@ -13,10 +13,10 @@ export function useDandoriReportHook() {
   });
 }
 
-export function useProductionRecordsHook() {
+export function useProductionRecordsHook(params?: { page?: number; limit?: number; paginate?: boolean }) {
   return useQuery<ProductionRecordsResponse, AxiosError<string>>({
-    queryKey: ["get-production-records"],
-    queryFn: () => reportService.getProductionRecords(),
+    queryKey: ["get-production-records", params],
+    queryFn: () => reportService.getProductionRecords(params),
     staleTime: 1000 * 10,
     refetchOnWindowFocus: true,
     placeholderData: keepPreviousData,

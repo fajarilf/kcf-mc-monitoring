@@ -46,4 +46,12 @@ export type ProductionRecordsResponse = {
   status: boolean;
   message: string;
   data: ProductionRecord[];
+  pagination?: {
+    page: number;
+    limit: number;
+    totalPages: number;
+    total: number;
+    hasPreviousPage?: boolean;
+    hasNextPage?: boolean;
+  };
 };

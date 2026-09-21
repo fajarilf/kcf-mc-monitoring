@@ -9,8 +9,8 @@ class ReportService {
     return res.data as DandoriReportResponse;
   }
 
-  async getProductionRecords(): Promise<ProductionRecordsResponse> {
-    const res = await api.get(`${this.base_url}/production-records`);
+  async getProductionRecords(params?: { page?: number; limit?: number; paginate?: boolean }): Promise<ProductionRecordsResponse> {
+    const res = await api.get(`${this.base_url}/production-records`, { params });
     return res.data as ProductionRecordsResponse;
   }
 }

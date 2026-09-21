@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Pagination } from "@/components/ui/pagination";
 import { useDandoriReportHook, useProductionRecordsHook } from "@/hooks/use-report";
 import type { MonthlyValues } from "@/model/report-model";
 
@@ -133,7 +134,16 @@ function DandoriTab() {
 }
 
 function AchievementsTab() {
-  const { data: prodData, isLoading: prodLoading } = useProductionRecordsHook();
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const { data: prodData, isLoading: prodLoading } = useProductionRecordsHook({
+    page,
+    limit: pageSize,
+    paginate: true,
+  });
+
+  const pagination = prodData?.pagination;
 
   const productionRows = useMemo(() => {
     const records = prodData?.data ?? [];
@@ -229,6 +239,21 @@ function AchievementsTab() {
             </TableBody>
           </Table>
         </div>
+        {pagination && (
+          <div className="mt-4">
+            <Pagination
+              page={pagination.page}
+              totalPages={pagination.totalPages}
+              total={pagination.total}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setPage(1);
+              }}
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
   );
