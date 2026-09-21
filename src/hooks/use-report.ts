@@ -1,12 +1,22 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { reportService } from "@/services/report-service";
-import type { DandoriReportResponse } from "@/model/report-model";
+import type { DandoriReportResponse, ProductionRecordsResponse } from "@/model/report-model";
 
 export function useDandoriReportHook() {
   return useQuery<DandoriReportResponse, AxiosError<string>>({
     queryKey: ["get-dandori-report"],
     queryFn: () => reportService.getDandori(),
+    staleTime: 1000 * 10,
+    refetchOnWindowFocus: true,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useProductionRecordsHook() {
+  return useQuery<ProductionRecordsResponse, AxiosError<string>>({
+    queryKey: ["get-production-records"],
+    queryFn: () => reportService.getProductionRecords(),
     staleTime: 1000 * 10,
     refetchOnWindowFocus: true,
     placeholderData: keepPreviousData,

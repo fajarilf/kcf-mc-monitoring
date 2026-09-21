@@ -30,3 +30,20 @@ export type DandoriReportResponse = {
   message: string;
   data: DandoriReportData;
 };
+
+export type ProductionRecord = {
+  date: string;
+  machine: { id: number; code: string };
+  item: { id: number; no: string; name: string };
+  speed: { minute: number; hour: number };
+  operator: { id: number; name: string }[];
+  times: { dandori: number; running: number };
+  productQuantity: number;
+  operatingRate: number;
+};
+
+export type ProductionRecordsResponse = {
+  status: boolean;
+  message: string;
+  data: ProductionRecord[];
+};
