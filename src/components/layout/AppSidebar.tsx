@@ -11,6 +11,7 @@ import {
   QrCode,
   Box,
   Cpu,
+  FileBarChart,
 } from "lucide-react";
 import {
   Sidebar,
@@ -29,6 +30,7 @@ const navItems = [
   { label: "Machine Monitoring", href: "/monitoring", icon: Monitor },
   { label: "Machine List", href: "/list-machine", icon: Cpu },
   { label: "History", href: "/history", icon: History },
+  { label: "Monthly Report", href: "/monthly-report", icon: FileBarChart },
   { label: "Product List", href: "/list-product", icon: Box },
   { label: "User Management", href: "/user", icon: Users },
   { label: "QR Generator", href: "/qr-generator", icon: QrCode },
