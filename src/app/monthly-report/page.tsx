@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Download, Loader2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -19,6 +20,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Pagination } from "@/components/ui/pagination";
+import { Button } from "@/components/ui/button";
 import { useDandoriReportHook, useProductionRecordsHook } from "@/hooks/use-report";
 import type { MonthlyValues } from "@/model/report-model";
 
@@ -135,7 +137,8 @@ function DandoriTab() {
 
 function AchievementsTab() {
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(50);
+  const [exportLoading, setExportLoading] = useState(false);
 
   const { data: prodData, isLoading: prodLoading } = useProductionRecordsHook({
     page,
@@ -164,11 +167,50 @@ function AchievementsTab() {
     );
   }, [prodData]);
 
+  async function handleExport() {
+    setExportLoading(true);
+    try {
+      const res = await fetch('/api/export-achievements');
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'Export failed');
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'Achievements_Forging.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Export failed:', err);
+    } finally {
+      setExportLoading(false);
+    }
+  }
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Achievements Forging</CardTitle>
-        <CardDescription>Production records</CardDescription>
+      <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <CardTitle>Achievements Forging</CardTitle>
+          <CardDescription>Production records</CardDescription>
+        </div>
+        <Button
+          className="rounded-sm"
+          variant="outline"
+          onClick={handleExport}
+          disabled={exportLoading}
+        >
+          {exportLoading ? (
+            <Loader2 className="mr-2 size-4 animate-spin" />
+          ) : (
+            <Download className="mr-2 size-4" />
+          )}
+          {exportLoading ? "Generating..." : "Export Excel"}
+        </Button>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto rounded-md border">
