@@ -21,8 +21,7 @@ function xmlEscape(str: string): string {
     .replace(/'/g, '&apos;');
 }
 
-function buildRowXml(r: number, item: ProductionRecord): string {
-  const operatorNames = item.operator.map((o) => o.name).join(', ');
+function buildRowXml(r: number, item: ProductionRecord, operatorName: string): string {
   const dateSerial = toExcelSerial(item.date);
 
   const cell = (
@@ -53,7 +52,7 @@ function buildRowXml(r: number, item: ProductionRecord): string {
     cell('H', item.item.name, { type: 'inlineStr' }),           // ITEM NAME
     cell('I', item.speed.minute),                               // SPEED(M)
     cell('J', item.speed.hour),                                 // SPEED(H)
-    cell('K', operatorNames, { type: 'inlineStr' }),            // OPERATOR
+    cell('K', operatorName, { type: 'inlineStr' }),            // OPERATOR
     cell('L', item.times.dandori),                              // DANDORI T.
     cell('M', item.times.running),                              // RUNNING T.
     cell('N', item.productQuantity),                            // PRODUCT QTY
@@ -126,8 +125,10 @@ export async function fillAchievementsTemplate(
   let r = currentLastRow + 1;
   let newRowsXml = '';
   for (const item of items) {
-    newRowsXml += buildRowXml(r, item);
-    r++;
+    for (const op of item.operator) {
+      newRowsXml += buildRowXml(r, item, op.name);
+      r++;
+    }
   }
   const newLastRow = r - 1;
 
