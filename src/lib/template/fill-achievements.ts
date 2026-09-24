@@ -41,27 +41,26 @@ function buildRowXml(r: number, item: ProductionRecord): string {
     return `<c r="${ref}" s="${s}"><v>${value}</v></c>`;
   };
 
-  // BUG FIX: this used to pass the formula TEXT string itself as the cached
-  // value, so the cell displayed the literal formula text instead of the
-  // month. Compute the real label separately.
   const monthLabel = new Date(item.date).toLocaleString('en-US', { month: 'short' });
+  const year = new Date(item.date).getFullYear();
 
   const cells = [
-    cell('B', monthLabel, { formula: `TEXT(C${r}, "mmm")` }),
-    cell('C', dateSerial, { style: '11' }), // s="11" = template's date number format (m/d/yyyy)
-    cell('D', item.machine.code, { type: 'inlineStr' }),
-    cell('E', item.item.no, { type: 'inlineStr' }),
-    cell('F', item.item.name, { type: 'inlineStr' }),
-    cell('G', item.speed.minute),
-    cell('H', item.speed.hour),
-    cell('I', operatorNames, { type: 'inlineStr' }),
-    cell('J', item.times.dandori),
-    cell('K', item.times.running),
-    cell('L', item.productQuantity),
-    cell('M', item.operatingRate),
+    cell('C', monthLabel, { formula: `TEXT(E${r}, "mmm")` }),  // MONTH
+    cell('D', year),                                            // YEAR
+    cell('E', dateSerial, { style: '11' }),                     // DATE
+    cell('F', item.machine.code, { type: 'inlineStr' }),        // MACHINE
+    cell('G', item.item.no, { type: 'inlineStr' }),             // ITEM NO
+    cell('H', item.item.name, { type: 'inlineStr' }),           // ITEM NAME
+    cell('I', item.speed.minute),                               // SPEED(M)
+    cell('J', item.speed.hour),                                 // SPEED(H)
+    cell('K', operatorNames, { type: 'inlineStr' }),            // OPERATOR
+    cell('L', item.times.dandori),                              // DANDORI T.
+    cell('M', item.times.running),                              // RUNNING T.
+    cell('N', item.productQuantity),                            // PRODUCT QTY
+    cell('O', item.operatingRate),                              // OPERATING RATE
   ].join('');
 
-  return `<row r="${r}" spans="2:13">${cells}</row>`;
+  return `<row r="${r}" spans="3:15">${cells}</row>`;
 }
 
 export async function fillAchievementsTemplate(
@@ -70,27 +69,56 @@ export async function fillAchievementsTemplate(
 ): Promise<Buffer> {
   const zip = await JSZip.loadAsync(templateBuffer);
 
-  // 1. Find current last row from table1.xml
   const tableFile = zip.file(TABLE_PATH);
   if (!tableFile) throw new Error(`Template missing ${TABLE_PATH}`);
   let tableXml = await tableFile.async('string');
-  const refMatch = tableXml.match(/ref="B2:M(\d+)"/);
+  const refMatch = tableXml.match(/ref="C2:O(\d+)"/);
   if (!refMatch) throw new Error('Could not find Table range in table1.xml');
-  const currentLastRow = parseInt(refMatch[1], 10);
+  let currentLastRow = parseInt(refMatch[1], 10);
 
-  // 2. Build and append new rows to sheet4.xml
   const sheetFile = zip.file(SHEET_PATH);
   if (!sheetFile) throw new Error(`Template missing ${SHEET_PATH}`);
   let sheetXml = await sheetFile.async('string');
 
-  // BUG FIX: the template can contain leftover/stray <row> elements beyond
+  // ---- Strip the template's placeholder/demo rows (rows 3-14 in Book2.xlsx) ----
+  // These ship inside the Table's own tracked range, so the pivot cache reads
+  // them as real records: fabricated dates with every data column empty.
+  // A row counts as placeholder if column E (ITEM NO) has no value (self-closed
+  // cell) - real API rows always populate ITEM NO, so this only ever matches
+  // the template's demo rows, never legitimate appended data.
+  const isPlaceholderRow = (rowXml: string, rowNum: number): boolean => {
+    const eCell = new RegExp(`<c r="F${rowNum}"[^>]*(?:/>|>(?:(?!</c>).)*</c>)`, 's').exec(rowXml);
+    if (!eCell) return true; // no E cell at all -> treat as placeholder
+    return eCell[0].endsWith('/>'); // self-closed = no <v>/<is> child = empty
+  };
+
+  let strippedAny = false;
+  sheetXml = sheetXml.replace(/<row r="(\d+)"[^>]*>.*?<\/row>/g, (match, rNum) => {
+    const rowNum = parseInt(rNum, 10);
+    if (rowNum < 3 || rowNum > currentLastRow) return match; // outside template's demo range
+    if (isPlaceholderRow(match, rowNum)) {
+      strippedAny = true;
+      return '';
+    }
+    return match;
+  });
+
+  if (strippedAny) {
+    // Shrink the table's tracked range back down to just the header row.
+    tableXml = tableXml
+      .replace(`ref="C2:O${currentLastRow}"`, 'ref="C2:O2"')
+      .replace(`<autoFilter ref="C2:O${currentLastRow}"`, '<autoFilter ref="C2:O2"');
+    currentLastRow = 2;
+  }
+
+  // ---- Strip any other stray rows beyond the table (leftover debris) ----
   // the table's tracked range (e.g. manual edits, debris from earlier testing).
   // Blindly appending new rows before </sheetData> put them AFTER this stray
   // content in document order, producing duplicate row indexes and rows out
   // of ascending order — invalid OOXML that makes Excel silently "repair"
   // the file on open, which is what was stripping the pivot tables.
   // Strip anything past currentLastRow first so insertion is always clean.
-  sheetXml = sheetXml.replace(/<row r="(\d+)"[^>]*>[\s\S]*?<\/row>|<row r="(\d+)"[^>]*\/>/g, (match, r1, r2) => {
+  sheetXml = sheetXml.replace(/<row r="(\d+)"[^>]*>.*?<\/row>|<row r="(\d+)"[^>]*\/>/g, (match, r1, r2) => {
     const rowNum = parseInt(r1 ?? r2, 10);
     return rowNum > currentLastRow ? '' : match;
   });
@@ -105,20 +133,20 @@ export async function fillAchievementsTemplate(
 
   sheetXml = sheetXml.replace('</sheetData>', `${newRowsXml}</sheetData>`);
   sheetXml = sheetXml.replace(
-    /<dimension ref="B1:M\d+"\/>/,
-    `<dimension ref="B1:M${newLastRow}"/>`,
+    /<dimension ref="C1:O\d+"\/>/,
+    `<dimension ref="C1:O${newLastRow}"/>`,
   );
   zip.file(SHEET_PATH, sheetXml);
 
   // 3. Extend the Table range so pivot cache source grows
   tableXml = tableXml
     .replace(
-      `ref="B2:M${currentLastRow}"`,
-      `ref="B2:M${newLastRow}"`,
+      `ref="C2:O${currentLastRow}"`,
+      `ref="C2:O${newLastRow}"`,
     )
     .replace(
-      `<autoFilter ref="B2:M${currentLastRow}"`,
-      `<autoFilter ref="B2:M${newLastRow}"`,
+      `<autoFilter ref="C2:O${currentLastRow}"`,
+      `<autoFilter ref="C2:O${newLastRow}"`,
     );
   zip.file(TABLE_PATH, tableXml);
 
