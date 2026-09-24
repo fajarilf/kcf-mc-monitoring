@@ -28,21 +28,27 @@ function buildRowXml(r: number, item: ProductionRecord): string {
   const cell = (
     col: string,
     value: string | number,
-    opts?: { formula?: string; type?: 'inlineStr' },
+    opts?: { formula?: string; type?: 'inlineStr'; style?: string },
   ): string => {
     const ref = `${col}${r}`;
+    const s = opts?.style ?? '5';
     if (opts?.formula) {
-      return `<c r="${ref}" s="5" t="str"><f>${xmlEscape(opts.formula)}</f><v>${xmlEscape(String(value))}</v></c>`;
+      return `<c r="${ref}" s="${s}" t="str"><f>${xmlEscape(opts.formula)}</f><v>${xmlEscape(String(value))}</v></c>`;
     }
     if (opts?.type === 'inlineStr') {
-      return `<c r="${ref}" s="5" t="inlineStr"><is><t>${xmlEscape(String(value))}</t></is></c>`;
+      return `<c r="${ref}" s="${s}" t="inlineStr"><is><t>${xmlEscape(String(value))}</t></is></c>`;
     }
-    return `<c r="${ref}" s="5"><v>${value}</v></c>`;
+    return `<c r="${ref}" s="${s}"><v>${value}</v></c>`;
   };
 
+  // BUG FIX: this used to pass the formula TEXT string itself as the cached
+  // value, so the cell displayed the literal formula text instead of the
+  // month. Compute the real label separately.
+  const monthLabel = new Date(item.date).toLocaleString('en-US', { month: 'short' });
+
   const cells = [
-    cell('B', `TEXT(C${r}, "mmm")`, { formula: `TEXT(C${r}, "mmm")` }),
-    cell('C', dateSerial),
+    cell('B', monthLabel, { formula: `TEXT(C${r}, "mmm")` }),
+    cell('C', dateSerial, { style: '11' }), // s="11" = template's date number format (m/d/yyyy)
     cell('D', item.machine.code, { type: 'inlineStr' }),
     cell('E', item.item.no, { type: 'inlineStr' }),
     cell('F', item.item.name, { type: 'inlineStr' }),
@@ -76,6 +82,18 @@ export async function fillAchievementsTemplate(
   const sheetFile = zip.file(SHEET_PATH);
   if (!sheetFile) throw new Error(`Template missing ${SHEET_PATH}`);
   let sheetXml = await sheetFile.async('string');
+
+  // BUG FIX: the template can contain leftover/stray <row> elements beyond
+  // the table's tracked range (e.g. manual edits, debris from earlier testing).
+  // Blindly appending new rows before </sheetData> put them AFTER this stray
+  // content in document order, producing duplicate row indexes and rows out
+  // of ascending order — invalid OOXML that makes Excel silently "repair"
+  // the file on open, which is what was stripping the pivot tables.
+  // Strip anything past currentLastRow first so insertion is always clean.
+  sheetXml = sheetXml.replace(/<row r="(\d+)"[^>]*>[\s\S]*?<\/row>|<row r="(\d+)"[^>]*\/>/g, (match, r1, r2) => {
+    const rowNum = parseInt(r1 ?? r2, 10);
+    return rowNum > currentLastRow ? '' : match;
+  });
 
   let r = currentLastRow + 1;
   let newRowsXml = '';
