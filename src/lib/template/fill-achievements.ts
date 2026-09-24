@@ -45,7 +45,7 @@ function buildRowXml(r: number, item: ProductionRecord, operatorName: string): s
 
   const cells = [
     cell('C', monthLabel, { formula: `TEXT(E${r}, "mmm")` }),  // MONTH
-    cell('D', year),                                            // YEAR
+    cell('D', year, { formula: `TEXT(E${r}, "mmm")` }),         // YEAR
     cell('E', dateSerial, { style: '11' }),                     // DATE
     cell('F', item.machine.code, { type: 'inlineStr' }),        // MACHINE
     cell('G', item.item.no, { type: 'inlineStr' }),             // ITEM NO
@@ -79,46 +79,22 @@ export async function fillAchievementsTemplate(
   if (!sheetFile) throw new Error(`Template missing ${SHEET_PATH}`);
   let sheetXml = await sheetFile.async('string');
 
-  // ---- Strip the template's placeholder/demo rows (rows 3-14 in Book2.xlsx) ----
-  // These ship inside the Table's own tracked range, so the pivot cache reads
-  // them as real records: fabricated dates with every data column empty.
-  // A row counts as placeholder if column E (ITEM NO) has no value (self-closed
-  // cell) - real API rows always populate ITEM NO, so this only ever matches
-  // the template's demo rows, never legitimate appended data.
-  const isPlaceholderRow = (rowXml: string, rowNum: number): boolean => {
-    const eCell = new RegExp(`<c r="F${rowNum}"[^>]*(?:/>|>(?:(?!</c>).)*</c>)`, 's').exec(rowXml);
-    if (!eCell) return true; // no E cell at all -> treat as placeholder
-    return eCell[0].endsWith('/>'); // self-closed = no <v>/<is> child = empty
-  };
-
-  let strippedAny = false;
-  sheetXml = sheetXml.replace(/<row r="(\d+)"[^>]*>.*?<\/row>/g, (match, rNum) => {
+  // ---- Strip ALL template demo rows (rows 3 through currentLastRow) ----
+  // Rows 1-2 are title + header and must be preserved.
+  sheetXml = sheetXml.replace(/<row r="(\d+)"[^>]*>[\s\S]*?<\/row>/g, (match, rNum) => {
     const rowNum = parseInt(rNum, 10);
-    if (rowNum < 3 || rowNum > currentLastRow) return match; // outside template's demo range
-    if (isPlaceholderRow(match, rowNum)) {
-      strippedAny = true;
-      return '';
-    }
-    return match;
+    return (rowNum >= 3 && rowNum <= currentLastRow) ? '' : match;
   });
 
-  if (strippedAny) {
-    // Shrink the table's tracked range back down to just the header row.
-    tableXml = tableXml
-      .replace(`ref="C2:O${currentLastRow}"`, 'ref="C2:O2"')
-      .replace(`<autoFilter ref="C2:O${currentLastRow}"`, '<autoFilter ref="C2:O2"');
-    currentLastRow = 2;
-  }
+  // Shrink the table's tracked range back down to just the header row.
+  tableXml = tableXml
+    .replace(`ref="C2:O${currentLastRow}"`, 'ref="C2:O2"')
+    .replace(`<autoFilter ref="C2:O${currentLastRow}"`, '<autoFilter ref="C2:O2"');
+  currentLastRow = 2;
 
-  // ---- Strip any other stray rows beyond the table (leftover debris) ----
-  // the table's tracked range (e.g. manual edits, debris from earlier testing).
-  // Blindly appending new rows before </sheetData> put them AFTER this stray
-  // content in document order, producing duplicate row indexes and rows out
-  // of ascending order — invalid OOXML that makes Excel silently "repair"
-  // the file on open, which is what was stripping the pivot tables.
-  // Strip anything past currentLastRow first so insertion is always clean.
-  sheetXml = sheetXml.replace(/<row r="(\d+)"[^>]*>.*?<\/row>|<row r="(\d+)"[^>]*\/>/g, (match, r1, r2) => {
-    const rowNum = parseInt(r1 ?? r2, 10);
+  // Strip any stray self-closed rows beyond the table
+  sheetXml = sheetXml.replace(/<row r="(\d+)"[^>]*\/>/g, (match, rNum) => {
+    const rowNum = parseInt(rNum, 10);
     return rowNum > currentLastRow ? '' : match;
   });
 
