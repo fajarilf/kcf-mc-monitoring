@@ -45,8 +45,8 @@ function buildRowXml(r: number, item: ProductionRecord, operatorName: string): s
 
   const cells = [
     cell('C', monthLabel, { formula: `TEXT(E${r}, "mmm")` }),  // MONTH
-    cell('D', year, { formula: `TEXT(E${r}, "mmm")` }),         // YEAR
-    cell('E', dateSerial, { style: '11' }),                     // DATE
+    cell('D', year, { formula: `TEXT(E${r}, "yyyy")` }),        // YEAR — was "mmm", copy-paste bug: showed the cached number now but would flip to a month abbreviation on Excel's next recalc
+    cell('E', dateSerial, { style: '9' }),                     // DATE
     cell('F', item.machine.code, { type: 'inlineStr' }),        // MACHINE
     cell('G', item.item.no, { type: 'inlineStr' }),             // ITEM NO
     cell('H', item.item.name, { type: 'inlineStr' }),           // ITEM NAME
@@ -56,7 +56,7 @@ function buildRowXml(r: number, item: ProductionRecord, operatorName: string): s
     cell('L', item.times.dandori),                              // DANDORI T.
     cell('M', item.times.running),                              // RUNNING T.
     cell('N', item.productQuantity),                            // PRODUCT QTY
-    cell('O', item.operatingRate),                              // OPERATING RATE
+    cell('O', item.operatingRate, { style: '18' }),             // OPERATING RATE
   ].join('');
 
   return `<row r="${r}" spans="3:15">${cells}</row>`;
@@ -92,9 +92,13 @@ export async function fillAchievementsTemplate(
     .replace(`<autoFilter ref="C2:O${currentLastRow}"`, '<autoFilter ref="C2:O2"');
   currentLastRow = 2;
 
-  // Strip any stray self-closed rows beyond the table
-  sheetXml = sheetXml.replace(/<row r="(\d+)"[^>]*\/>/g, (match, rNum) => {
-    const rowNum = parseInt(rNum, 10);
+  // Strip any stray rows beyond the table (self-closing OR with content —
+  // matching only self-closed rows here was the bug: a stray row with an
+  // actual leftover cell in it, like row 17, was never being removed, and
+  // real appended data later collided with it at the same row number,
+  // producing a duplicate <row> index again.
+  sheetXml = sheetXml.replace(/<row r="(\d+)"[^>]*>[\s\S]*?<\/row>|<row r="(\d+)"[^>]*\/>/g, (match, r1, r2) => {
+    const rowNum = parseInt(r1 ?? r2, 10);
     return rowNum > currentLastRow ? '' : match;
   });
 
