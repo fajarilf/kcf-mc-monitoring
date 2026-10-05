@@ -105,10 +105,8 @@ export async function fillAchievementsTemplate(
   let r = currentLastRow + 1;
   let newRowsXml = '';
   for (const item of items) {
-    for (const op of item.operator) {
-      newRowsXml += buildRowXml(r, item, op.name);
-      r++;
-    }
+    newRowsXml += buildRowXml(r, item, item.operator.map((op) => op.name).join(', '));
+    r++;
   }
   const newLastRow = r - 1;
 

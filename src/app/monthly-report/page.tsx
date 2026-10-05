@@ -150,21 +150,19 @@ function AchievementsTab() {
 
   const productionRows = useMemo(() => {
     const records = prodData?.data ?? [];
-    return records.flatMap((record) =>
-      record.operator.map((op) => ({
-        date: record.date,
-        machine: record.machine.code,
-        itemNo: record.item.no,
-        itemName: record.item.name,
-        speedMinute: record.speed.minute,
-        speedHour: record.speed.hour,
-        operator: op.name,
-        dandoriTime: record.times.dandori,
-        runningTime: record.times.running,
-        productQuantity: record.productQuantity,
-        operatingRate: record.operatingRate,
-      })),
-    );
+    return records.map((record) => ({
+      date: record.date,
+      machine: record.machine.code,
+      itemNo: record.item.no,
+      itemName: record.item.name,
+      speedMinute: record.speed.minute,
+      speedHour: record.speed.hour,
+      operator: record.operator.map((op) => op.name).join(", "),
+      dandoriTime: record.times.dandori,
+      runningTime: record.times.running,
+      productQuantity: record.productQuantity,
+      operatingRate: record.operatingRate,
+    }));
   }, [prodData]);
 
   async function handleExport() {
@@ -273,7 +271,10 @@ function AchievementsTab() {
                       {row.productQuantity}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {row.operatingRate}
+                      {row.operatingRate.toLocaleString(undefined, {
+                        style: "percent",
+                        maximumFractionDigits: 1,
+                      })}
                     </TableCell>
                   </TableRow>
                 ))
