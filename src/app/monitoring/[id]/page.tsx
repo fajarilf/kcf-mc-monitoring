@@ -231,11 +231,7 @@ export default function MachineDetailPage() {
 
         // Scope dandori, problem, and production entries to this block only
         const dandoriEntries = blockGroups.flatMap((g) =>
-          g.timeline.filter((s) => {
-            if (s.status !== MACHINE_STATUS.DANDORI) return false;
-            const endMs = s.end ? new Date(s.end).getTime() : Date.now();
-            return endMs - new Date(s.start).getTime() >= 60_000;
-          }).map((seg) => ({
+          g.timeline.filter((s) => s.status === MACHINE_STATUS.DANDORI).map((seg) => ({
             DandoriDate: toDateString(seg.start),
             DandoriStart: toTimeString(seg.start),
             DandoriEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
@@ -246,11 +242,7 @@ export default function MachineDetailPage() {
 
         const problemEntries = blockGroups.flatMap((g) =>
           g.timeline
-            .filter((s) => {
-              if (s.status === MACHINE_STATUS.DANDORI || s.status === MACHINE_STATUS.RUNNING) return false;
-              const endMs = s.end ? new Date(s.end).getTime() : Date.now();
-              return endMs - new Date(s.start).getTime() >= 60_000;
-            })
+            .filter((s) => s.status !== MACHINE_STATUS.DANDORI && s.status !== MACHINE_STATUS.RUNNING)
             .map((seg) => ({
               ProblemDate: toDateString(seg.start),
               ProblemStart: toTimeString(seg.start),
@@ -264,11 +256,7 @@ export default function MachineDetailPage() {
 
         const productionEntries = blockGroups.flatMap((group) =>
           group.timeline
-            .filter((s) => {
-              if (s.status === MACHINE_STATUS.DANDORI || s.status === MACHINE_STATUS.OFF) return false;
-              const endMs = s.end ? new Date(s.end).getTime() : Date.now();
-              return endMs - new Date(s.start).getTime() >= 60_000;
-            })
+            .filter((s) => s.status !== MACHINE_STATUS.DANDORI && s.status !== MACHINE_STATUS.OFF)
             .map((seg) => ({
               ProductionDate: toDateString(seg.start),
               ProductionStart: toTimeString(seg.start),

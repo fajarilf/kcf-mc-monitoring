@@ -1,9 +1,15 @@
 import JSZip from 'jszip';
-import type { ProductionRecord } from '@/model/report-model';
+import type { DandoriReportData, MonthlyValues, ProductionRecord } from '@/model/report-model';
 
 const SHEET_PATH = 'xl/worksheets/sheet4.xml';
+const OPERATOR_SHEET_PATH = 'xl/worksheets/sheet1.xml';
+const STYLES_PATH = 'xl/styles.xml';
 const TABLE_PATH = 'xl/tables/table1.xml';
 const PIVOT_CACHE_PATH = 'xl/pivotCache/pivotCacheDefinition1.xml';
+const MONTHS: (keyof MonthlyValues)[] = [
+  'jan', 'feb', 'mar', 'apr', 'may', 'jun',
+  'jul', 'aug', 'sep', 'oct', 'nov', 'dec',
+];
 
 function toExcelSerial(dateStr: string): number {
   const d = new Date(dateStr);
@@ -56,17 +62,92 @@ function buildRowXml(r: number, item: ProductionRecord, operatorName: string): s
     cell('L', item.times.dandori),                              // DANDORI T.
     cell('M', item.times.running),                              // RUNNING T.
     cell('N', item.productQuantity),                            // PRODUCT QTY
-    cell('O', item.operatingRate, { style: '18' }),             // OPERATING RATE
+    cell('O', item.operatingRate, { style: '15' }),             // OPERATING RATE
   ].join('');
 
   return `<row r="${r}" spans="3:15">${cells}</row>`;
 }
 
+async function addLightTurquoiseStyle(zip: JSZip): Promise<string> {
+  const stylesFile = zip.file(STYLES_PATH);
+  if (!stylesFile) throw new Error(`Template missing ${STYLES_PATH}`);
+  let stylesXml = await stylesFile.async('string');
+  const fillCount = Number(stylesXml.match(/<fills count="(\d+)">/)?.[1]);
+  const styleCount = Number(stylesXml.match(/<cellXfs count="(\d+)">/)?.[1]);
+  if (!fillCount || !styleCount) throw new Error('Could not read template styles');
+
+  stylesXml = stylesXml
+    .replace(`<fills count="${fillCount}">`, `<fills count="${fillCount + 1}">`)
+    .replace(
+      '</fills>',
+      '<fill><patternFill patternType="solid"><fgColor rgb="FFCCFFFF"/><bgColor indexed="64"/></patternFill></fill></fills>',
+    )
+    .replace(`<cellXfs count="${styleCount}">`, `<cellXfs count="${styleCount + 1}">`)
+    .replace(
+      '</cellXfs>',
+      `<xf numFmtId="0" fontId="0" fillId="${fillCount}" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf></cellXfs>`,
+    );
+  zip.file(STYLES_PATH, stylesXml);
+  return String(styleCount);
+}
+
+function buildOperatorSheetRows(data: DandoriReportData, accentStyle: string): string {
+  const textCell = (ref: string, value: string, style: string) =>
+    `<c r="${ref}" s="${style}" t="inlineStr"><is><t>${xmlEscape(value)}</t></is></c>`;
+  const numberCell = (ref: string, value: number | null, style: string) =>
+    value === null ? `<c r="${ref}" s="${style}"/>` : `<c r="${ref}" s="${style}"><v>${value}</v></c>`;
+  const columns = 'CDEFGHIJKLMN';
+  const valueCells = (
+    row: number,
+    months: MonthlyValues,
+    average: number | null,
+    style = '3',
+  ) => MONTHS.map((month, i) =>
+    numberCell(`${columns[i]}${row}`, months[month], style),
+  ).join('') + numberCell(`O${row}`, average, accentStyle);
+
+  const title = 'BCDEFGHIJKLMNO'.split('').map((column) =>
+    textCell(
+      `${column}9`,
+      column === 'B' ? 'DANDORI T AVG.' : column === 'C' ? 'Column Labels' : '',
+      accentStyle,
+    ),
+  ).join('');
+  const headers = MONTHS.map((month, i) =>
+    textCell(`${columns[i]}10`, month[0].toUpperCase() + month.slice(1), accentStyle),
+  ).join('');
+  const operatorRows = data.operators.map((operator, i) => {
+    const row = i + 11;
+    return `<row r="${row}" spans="2:15">${textCell(`B${row}`, operator.name, '12')}${valueCells(row, operator.months, operator.average)}</row>`;
+  }).join('');
+  const averageRow = data.operators.length + 11;
+
+  return `<row r="9" spans="2:15">${title}</row>`
+    + `<row r="10" spans="2:15">${textCell('B10', 'Operator Name', accentStyle)}${headers}${textCell('O10', 'Average', accentStyle)}</row>`
+    + operatorRows
+    + `<row r="${averageRow}" spans="2:15">${textCell(`B${averageRow}`, 'Average', accentStyle)}${valueCells(averageRow, data.average, data.average.overall, accentStyle)}</row>`;
+}
+
 export async function fillAchievementsTemplate(
   templateBuffer: Buffer,
   items: ProductionRecord[],
+  dandori: DandoriReportData,
 ): Promise<Buffer> {
   const zip = await JSZip.loadAsync(templateBuffer);
+  const operatorAccentStyle = await addLightTurquoiseStyle(zip);
+
+  const operatorSheetFile = zip.file(OPERATOR_SHEET_PATH);
+  if (!operatorSheetFile) throw new Error(`Template missing ${OPERATOR_SHEET_PATH}`);
+  let operatorSheetXml = await operatorSheetFile.async('string');
+  operatorSheetXml = operatorSheetXml.replace(
+    /<row r="(\d+)"[^>]*>[\s\S]*?<\/row>/g,
+    (rowXml, rowNumber) => Number(rowNumber) >= 9 ? '' : rowXml,
+  );
+  const operatorLastRow = dandori.operators.length + 11;
+  operatorSheetXml = operatorSheetXml
+    .replace('</sheetData>', `${buildOperatorSheetRows(dandori, operatorAccentStyle)}</sheetData>`)
+    .replace(/<dimension ref="[^"]+"\/>/, `<dimension ref="B4:O${operatorLastRow}"/>`);
+  zip.file(OPERATOR_SHEET_PATH, operatorSheetXml);
 
   const tableFile = zip.file(TABLE_PATH);
   if (!tableFile) throw new Error(`Template missing ${TABLE_PATH}`);

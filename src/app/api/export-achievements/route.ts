@@ -1,7 +1,7 @@
 export const runtime = 'nodejs';
 
 import { fillAchievementsTemplate } from '@/lib/template/fill-achievements';
-import type { ProductionRecord } from '@/model/report-model';
+import type { DandoriReportResponse, ProductionRecord } from '@/model/report-model';
 import fs from 'fs/promises';
 import { NextResponse } from 'next/server';
 import path from 'path';
@@ -31,6 +31,12 @@ export async function GET() {
       page++;
     }
 
+    const dandoriRes = await fetch(`${baseUrl}/reports/dandori`);
+    if (!dandoriRes.ok) {
+      throw new Error(`Backend returned ${dandoriRes.status}: ${await dandoriRes.text()}`);
+    }
+    const dandori = await dandoriRes.json() as DandoriReportResponse;
+
     // Read template and fill
     const templatePath = path.join(
       process.cwd(),
@@ -40,7 +46,7 @@ export async function GET() {
       'achievements-template.xlsx',
     );
     const template = await fs.readFile(templatePath);
-    const buffer = await fillAchievementsTemplate(template, allItems);
+    const buffer = await fillAchievementsTemplate(template, allItems, dandori.data);
 
     return new Response(new Uint8Array(buffer), {
       headers: {
