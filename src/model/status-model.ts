@@ -8,7 +8,8 @@ export type ProductionSegment = {
     start: string,
     end: string | null,
     status: MACHINE_STATUS,
-    counter?: number | null
+    counter?: number | null,
+    duration: number
 };
 
 /** A production group containing segments for one operator/product combination. */

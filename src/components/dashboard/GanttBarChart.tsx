@@ -25,7 +25,6 @@ interface Props {
   hideLegend?: boolean;
   rowHeight?: number;
   machineId?: string;
-  nowMs?: number;
   /** When provided, running-% is computed from this timeline instead of the latest-product hook. */
   percentTimeline?: MachineTimeline | null;
 }
@@ -42,7 +41,6 @@ export const GanttBarChart = memo(function GanttBarChart({
   hideLegend = false,
   rowHeight,
   machineId,
-  nowMs,
   percentTimeline,
 }: Props) {
   const stepSize = tickStep ?? Math.max(1, Math.round(totalUnits / tickCount));
@@ -77,7 +75,6 @@ export const GanttBarChart = memo(function GanttBarChart({
   );
 
   const runningPcts = useMemo(() => {
-    const fallbackNow = nowMs ?? new Date().getTime();
     const latestMap = new Map<string, { runningMin: number; totalMin: number }>();
     const machines = percentTimeline ? [percentTimeline] : (latestProductData?.data ?? []);
     for (const m of machines) {
@@ -86,9 +83,7 @@ export const GanttBarChart = memo(function GanttBarChart({
       for (const g of m.production) {
         for (const seg of g.timeline) {
           if (seg.status === MACHINE_STATUS.DANDORI || seg.status === MACHINE_STATUS.OFF) continue;
-          const startMs = new Date(seg.start).getTime();
-          const endMs = seg.end ? new Date(seg.end).getTime() : fallbackNow;
-          const minutes = (endMs - startMs) / 60_000;
+          const minutes = seg.duration / 60;
           if (minutes <= 0) continue;
           totalMin += minutes;
           if (seg.status === MACHINE_STATUS.RUNNING) runningMin += minutes;
@@ -102,7 +97,7 @@ export const GanttBarChart = memo(function GanttBarChart({
       if (!data || data.totalMin === 0) return 0;
       return (data.runningMin / data.totalMin) * 100;
     });
-  }, [rows, latestProductData, percentTimeline, nowMs]);
+  }, [rows, latestProductData, percentTimeline]);
 
   const rowEnds = useMemo(
     () =>

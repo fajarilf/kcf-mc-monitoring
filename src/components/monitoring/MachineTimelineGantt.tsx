@@ -207,9 +207,8 @@ export function MachineTimelineGantt({ machineId, startDate, endDate, selectedPa
       for (const seg of group.timeline) {
         const segStartMs = new Date(seg.start).getTime();
         const segEndMs = seg.end ? new Date(seg.end).getTime() : chartNow;
-        const clampedStartMs = Math.max(windowStartMs, Math.min(windowEndMs, segStartMs));
-        const clampedEndMs = Math.max(windowStartMs, Math.min(windowEndMs, segEndMs));
-        const minutes = (clampedEndMs - clampedStartMs) / 60_000;
+        if (segStartMs >= windowEndMs || segEndMs <= windowStartMs) continue;
+        const minutes = seg.duration / 60;
         if (minutes <= 0) continue;
         const existing = summary.get(seg.status) ?? { totalMinutes: 0, count: 0 };
         summary.set(seg.status, {
@@ -353,7 +352,6 @@ export function MachineTimelineGantt({ machineId, startDate, endDate, selectedPa
         formatTick={handleFormatTick}
         formatClock={handleFormatClock}
         machineId={machineId}
-        nowMs={chartNow ?? undefined}
         percentTimeline={percentTimeline}
       />
     </div>

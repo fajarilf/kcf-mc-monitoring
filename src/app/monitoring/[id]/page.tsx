@@ -150,10 +150,8 @@ export default function MachineDetailPage() {
     return iso.slice(11, 16);
   }
 
-  function durationMinutes(startIso: string, endIso: string | null): number {
-    const start = new Date(startIso).getTime();
-    const end = endIso ? new Date(endIso).getTime() : Date.now();
-    return Math.round((end - start) / 60_000);
+  function durationMinutes(seconds: number): number {
+    return Number((seconds / 60).toFixed(3));
   }
 
   function buildRequestBodies(): FillTemplateData[] {
@@ -235,7 +233,7 @@ export default function MachineDetailPage() {
             DandoriDate: toDateString(seg.start),
             DandoriStart: toTimeString(seg.start),
             DandoriEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
-            DandoriDuration: durationMinutes(seg.start, seg.end),
+            DandoriDuration: durationMinutes(seg.duration),
             DandoriPIC: g.user,
           })),
         );
@@ -247,7 +245,7 @@ export default function MachineDetailPage() {
               ProblemDate: toDateString(seg.start),
               ProblemStart: toTimeString(seg.start),
               ProblemEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
-              ProblemDuration: durationMinutes(seg.start, seg.end),
+              ProblemDuration: durationMinutes(seg.duration),
               ProblemPIC: g.user || "-",
               ProblemStatus: statusLabel[seg.status],
               ProblemDescription: seg.message,
@@ -261,27 +259,27 @@ export default function MachineDetailPage() {
               ProductionDate: toDateString(seg.start),
               ProductionStart: toTimeString(seg.start),
               ProductionEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
-              ProductionDuration: durationMinutes(seg.start, seg.end),
+              ProductionDuration: durationMinutes(seg.duration),
               Status: statusLabel[seg.status],
               ProductionPIC: group.user || "-",
               ProductionCounter: seg.status === MACHINE_STATUS.RUNNING ? seg.counter : null,
             })),
         );
 
-        const totalDandori = dandoriEntries.reduce(
+        const totalDandori = Number(dandoriEntries.reduce(
           (sum, p) => sum + p.DandoriDuration,
           0,
-        );
+        ).toFixed(3));
 
-        const totalProblem = problemEntries.reduce(
+        const totalProblem = Number(problemEntries.reduce(
           (sum, p) => sum + p.ProblemDuration,
           0,
-        );
+        ).toFixed(3));
 
-        const totalProduction = productionEntries.reduce(
+        const totalProduction = Number(productionEntries.reduce(
           (sum, p) => sum + p.ProductionDuration,
           0,
-        );
+        ).toFixed(3));
 
         const totalCounterProduct = blockGroups.reduce(
           (sum, g) => sum + g.quantity,
