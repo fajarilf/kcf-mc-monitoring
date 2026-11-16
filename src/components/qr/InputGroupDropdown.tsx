@@ -1,6 +1,6 @@
 import { ChevronDownIcon } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
-import { InputGroup, InputGroupAddon, InputGroupButton } from "../ui/input-group";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "../ui/input-group";
 import { useRef, useState } from "react";
 import { Combobox, ComboboxContent, ComboboxEmpty, ComboboxInput, ComboboxItem, ComboboxList } from "../ui/combobox";
 import { UserData } from "@/model/user-model";
@@ -11,7 +11,10 @@ import { useProductHook } from "@/hooks/use-product";
 
 type DropdownValue = {
     id: number,
-    value: string
+    value: string,
+    source: "product" | "operator" | "fixed",
+    prefix?: string,
+    content?: string,
 }
 
 type Props = {
@@ -19,8 +22,12 @@ type Props = {
 }
 
 const values: DropdownValue[] = [
-    {id: 1, value: "Work Name"},
-    {id: 2, value: "Operator"},
+    { id: 1, value: "Work Name", source: "product" },
+    { id: 2, value: "Operator", source: "operator", prefix: "-" },
+    { id: 3, value: "Under Maintenance ON", source: "operator", prefix: "$" },
+    { id: 4, value: "Under Maintenance OFF", source: "operator", prefix: "%" },
+    { id: 5, value: "Preventive Maintenance ON", source: "fixed", content: "&PREVENTIVE" },
+    { id: 6, value: "Preventive Maintenance OFF", source: "fixed", content: "*PREVENTIVE" },
 ];
 
 const DEFAULT_TYPE = values[0];
@@ -33,8 +40,8 @@ export function InputGroupDropdown({ onValueChange }: Props) {
     const [searchUser, setSearchUser] = useState<string>();
     const [searchProduct, setSearchProduct] = useState<string>();
 
-    const isOperator = selectedType?.value === "Operator";
-    const isWorkName = selectedType?.value === "Work Name";
+    const isOperator = selectedType.source === "operator";
+    const isWorkName = selectedType.source === "product";
 
     const debouncedSearchUser = useDebouncedValue(searchUser);
     const debouncedSearchProduct = useDebouncedValue(searchProduct);
@@ -55,7 +62,7 @@ export function InputGroupDropdown({ onValueChange }: Props) {
         setProduct(null);
         setSearchUser(undefined);
         setSearchProduct(undefined);
-        onValueChange(undefined);
+        onValueChange(type.content);
     };
 
     return (
@@ -66,7 +73,7 @@ export function InputGroupDropdown({ onValueChange }: Props) {
                     value={user}
                     onValueChange={(data) => {
                         setUser(data);
-                        onValueChange(`-${data?.name}`);
+                        onValueChange(data ? `${selectedType.prefix}${data.name}` : undefined);
                         if (data) setTimeout(() => inputRef.current?.blur(), 0);
                     }}
                     onInputValueChange={(value) => setSearchUser(value)}
@@ -96,7 +103,7 @@ export function InputGroupDropdown({ onValueChange }: Props) {
                         </ComboboxList>
                     </ComboboxContent>
                 </Combobox>
-            ) : (
+            ) : isWorkName ? (
                 <Combobox
                     items={productData?.data}
                     value={product}
@@ -133,6 +140,12 @@ export function InputGroupDropdown({ onValueChange }: Props) {
                         </ComboboxList>
                     </ComboboxContent>
                 </Combobox>
+            ) : (
+                <InputGroupInput
+                    readOnly
+                    value={selectedType.content}
+                    aria-label={`${selectedType.value} QR content`}
+                />
             )}
             <InputGroupAddon align="inline-end">
                 <DropdownMenu>

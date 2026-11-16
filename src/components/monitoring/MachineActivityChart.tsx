@@ -50,6 +50,8 @@ const STATUSES: MACHINE_STATUS[] = [
   MACHINE_STATUS.CYOKOTEI_STOP,
   MACHINE_STATUS.DANDORI,
   MACHINE_STATUS.SETUP,
+  MACHINE_STATUS.PREVENTIVE_MAINTENANCE,
+  MACHINE_STATUS.UNDER_MAINTENANCE,
 ];
 
 function generateDateRange(startDate: string, endDate: string): Date[] {
@@ -78,6 +80,8 @@ function getTotalHoursByStatus(
     [MACHINE_STATUS.CYOKOTEI_STOP]: [],
     [MACHINE_STATUS.DANDORI]: [],
     [MACHINE_STATUS.SETUP]: [],
+    [MACHINE_STATUS.PREVENTIVE_MAINTENANCE]: [],
+    [MACHINE_STATUS.UNDER_MAINTENANCE]: [],
   };
 
   for (const date of dateRange) {
@@ -91,6 +95,8 @@ function getTotalHoursByStatus(
       [MACHINE_STATUS.CYOKOTEI_STOP]: 0,
       [MACHINE_STATUS.DANDORI]: 0,
       [MACHINE_STATUS.SETUP]: 0,
+      [MACHINE_STATUS.PREVENTIVE_MAINTENANCE]: 0,
+      [MACHINE_STATUS.UNDER_MAINTENANCE]: 0,
     };
 
     if (dayData) {

@@ -53,6 +53,18 @@ const statusAccent: Record<
     dot: "bg-gray-500 shadow-[0_0_0_3px_rgba(107,114,128,0.18)]",
     bar: "bg-gray-500",
   },
+  [MACHINE_STATUS.PREVENTIVE_MAINTENANCE]: {
+    ring: "ring-cyan-500/30 dark:ring-cyan-400/30",
+    glow: "from-cyan-500/10",
+    dot: "bg-cyan-500 shadow-[0_0_0_3px_rgba(6,182,212,0.18)]",
+    bar: "bg-cyan-500",
+  },
+  [MACHINE_STATUS.UNDER_MAINTENANCE]: {
+    ring: "ring-violet-500/30 dark:ring-violet-400/30",
+    glow: "from-violet-500/10",
+    dot: "bg-violet-500 shadow-[0_0_0_3px_rgba(139,92,246,0.18)]",
+    bar: "bg-violet-500",
+  },
 };
 
 export function MachineCardCompact({ machine }: { machine: MachineData }) {

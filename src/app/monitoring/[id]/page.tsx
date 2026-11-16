@@ -56,6 +56,8 @@ const accentBar: Record<MACHINE_STATUS, string> = {
   [MACHINE_STATUS.CYOKOTEI_STOP]: "bg-rose-500",
   [MACHINE_STATUS.DANDORI]: "bg-orange-500",
   [MACHINE_STATUS.SETUP]: "bg-gray-500",
+  [MACHINE_STATUS.PREVENTIVE_MAINTENANCE]: "bg-cyan-500",
+  [MACHINE_STATUS.UNDER_MAINTENANCE]: "bg-violet-500",
 };
 
 const accentDot: Record<MACHINE_STATUS, string> = {
@@ -68,6 +70,10 @@ const accentDot: Record<MACHINE_STATUS, string> = {
     "bg-orange-500 shadow-[0_0_0_3px_rgba(249,115,22,0.18)]",
   [MACHINE_STATUS.SETUP]:
     "bg-gray-500 shadow-[0_0_0_3px_rgba(107,114,128,0.18)]",
+  [MACHINE_STATUS.PREVENTIVE_MAINTENANCE]:
+    "bg-cyan-500 shadow-[0_0_0_3px_rgba(6,182,212,0.18)]",
+  [MACHINE_STATUS.UNDER_MAINTENANCE]:
+    "bg-violet-500 shadow-[0_0_0_3px_rgba(139,92,246,0.18)]",
 };
 
 export default function MachineDetailPage() {

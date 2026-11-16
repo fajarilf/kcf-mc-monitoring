@@ -4,6 +4,8 @@ export enum MACHINE_STATUS {
   CYOKOTEI_STOP,
   DANDORI,
   SETUP,
+  PREVENTIVE_MAINTENANCE,
+  UNDER_MAINTENANCE,
 }
 
 export const statusLabel: Record<MACHINE_STATUS, string> = {
@@ -12,6 +14,8 @@ export const statusLabel: Record<MACHINE_STATUS, string> = {
   [MACHINE_STATUS.CYOKOTEI_STOP]: "Cyokotei Stop",
   [MACHINE_STATUS.DANDORI]: "Dandori",
   [MACHINE_STATUS.SETUP]: "Setup",
+  [MACHINE_STATUS.PREVENTIVE_MAINTENANCE]: "Preventive Maintenance",
+  [MACHINE_STATUS.UNDER_MAINTENANCE]: "Under Maintenance",
 };
 
 export const statusColorClass: Record<MACHINE_STATUS, string> = {
@@ -25,6 +29,10 @@ export const statusColorClass: Record<MACHINE_STATUS, string> = {
     "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:border-orange-500/30",
   [MACHINE_STATUS.SETUP]:
     "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-500/15 dark:text-gray-300 dark:border-gray-500/30",
+  [MACHINE_STATUS.PREVENTIVE_MAINTENANCE]:
+    "bg-cyan-100 text-cyan-700 border-cyan-200 dark:bg-cyan-500/15 dark:text-cyan-300 dark:border-cyan-500/30",
+  [MACHINE_STATUS.UNDER_MAINTENANCE]:
+    "bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-500/15 dark:text-violet-300 dark:border-violet-500/30",
 };
 
 export const statusFillHex: Record<MACHINE_STATUS, string> = {
@@ -33,6 +41,8 @@ export const statusFillHex: Record<MACHINE_STATUS, string> = {
   [MACHINE_STATUS.CYOKOTEI_STOP]: "#f43f5e", // merah (red)
   [MACHINE_STATUS.DANDORI]: "#f97316", // oranye (orange)
   [MACHINE_STATUS.SETUP]: "#6b7280", // gray
+  [MACHINE_STATUS.PREVENTIVE_MAINTENANCE]: "#06b6d4", // cyan
+  [MACHINE_STATUS.UNDER_MAINTENANCE]: "#8b5cf6", // violet
 };
 
 export function withAlpha(hex: string, alpha: number): string {

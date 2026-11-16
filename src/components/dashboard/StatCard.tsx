@@ -6,7 +6,7 @@ interface StatCardProps {
   label: string;
   value: number;
   icon: LucideIcon;
-  tone: "green" | "yellow" | "red" | "gray" | "black";
+  tone: "green" | "yellow" | "red" | "gray" | "black" | "cyan" | "violet";
 }
 
 const toneStyles: Record<
@@ -37,7 +37,17 @@ const toneStyles: Record<
     wrap: "bg-black text-white",
     icon: "",
     ring: "ring-black",
-  }
+  },
+  cyan: {
+    wrap: "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400",
+    icon: "",
+    ring: "ring-cyan-500/20",
+  },
+  violet: {
+    wrap: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
+    icon: "",
+    ring: "ring-violet-500/20",
+  },
 };
 
 export function StatCard({ label, value, icon: Icon, tone }: StatCardProps) {

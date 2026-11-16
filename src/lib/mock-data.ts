@@ -129,6 +129,8 @@ function buildSegments(totalHours: number, seed: number): GanttSegment[] {
     MACHINE_STATUS.OFF,
     MACHINE_STATUS.RUNNING,
     MACHINE_STATUS.CYOKOTEI_STOP,
+    MACHINE_STATUS.PREVENTIVE_MAINTENANCE,
+    MACHINE_STATUS.UNDER_MAINTENANCE,
   ];
   while (cursor < totalHours) {
     const remaining = totalHours - cursor;
@@ -199,6 +201,8 @@ export function getDailyHoursByStatus(
     [MACHINE_STATUS.CYOKOTEI_STOP]: new Array(days).fill(0) as number[],
     [MACHINE_STATUS.DANDORI]: new Array(days).fill(0) as number[],
     [MACHINE_STATUS.SETUP]: new Array(days).fill(0) as number[],
+    [MACHINE_STATUS.PREVENTIVE_MAINTENANCE]: new Array(days).fill(0) as number[],
+    [MACHINE_STATUS.UNDER_MAINTENANCE]: new Array(days).fill(0) as number[],
   };
   for (const seg of segments) {
     let s = seg.start;
