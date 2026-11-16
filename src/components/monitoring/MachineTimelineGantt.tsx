@@ -344,6 +344,7 @@ export function MachineTimelineGantt({ machineId, startDate, endDate, selectedPa
         </div>
       </div>
       <GanttBarChart
+        percentageFromVisibleRows
         rows={rows}
         totalUnits={windowHours}
         unitLabel="h"
