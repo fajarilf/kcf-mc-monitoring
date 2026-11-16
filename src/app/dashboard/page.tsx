@@ -101,23 +101,53 @@ function toGanttRows(
     const machineId = String(machine.id);
     const machineName = machine.name.toUpperCase();
     const machineTimeline = timelineById.get(machineId);
-    const segments = machineTimeline?.production.flatMap((group) =>
-      group.timeline.map((seg) => {
-        const segStartMs = new Date(seg.start).getTime();
-        const segEndMs = seg.end ? new Date(seg.end).getTime() : nowMs;
+    const timeline = machineTimeline?.production.flatMap((group) =>
+      group.timeline.map((segment) => ({
+        ...segment,
+        userName: group.user,
+        productPartNo: group.partNo,
+      })),
+    ) ?? [];
+    const previous = timeline
+      .filter((segment) => new Date(segment.start).getTime() < windowStartMs)
+      .sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime())[0];
+    const segments = timeline
+      .filter((segment) => {
+        const startMs = new Date(segment.start).getTime();
+        const endMs = segment.end ? new Date(segment.end).getTime() : nowMs;
+        return (
+          endMs > windowStartMs &&
+          startMs < windowEndMs &&
+          (startMs >= windowStartMs || segment === previous)
+        );
+      })
+      .map((segment) => {
+        const segStartMs = new Date(segment.start).getTime();
+        const segEndMs = segment.end ? new Date(segment.end).getTime() : nowMs;
         const startMs = Math.max(windowStartMs, Math.min(windowEndMs, segStartMs));
         const endMs = Math.max(windowStartMs, Math.min(windowEndMs, segEndMs));
         const start = (startMs - windowStartMs) / MS_PER_HOUR;
         const end = (endMs - windowStartMs) / MS_PER_HOUR;
         return {
-          status: seg.status,
+          status: segment.status,
           start,
           duration: end - start,
-          userName: group.user,
-          productPartNo: group.partNo,
+          userName: segment.userName,
+          productPartNo: segment.productPartNo,
         };
-      }),
-    ).filter((seg) => seg.duration > 0) ?? [];
+      })
+      .filter((segment) => segment.duration > 0);
+
+    if (machineId === "7") {
+      console.debug("Gantt dashboard window", {
+        machineId,
+        windowStart: new Date(windowStartMs).toString(),
+        windowEnd: new Date(windowEndMs).toString(),
+        chartTime: new Date(nowMs).toString(),
+        browserTime: new Date().toString(),
+        timeline,
+      });
+    }
 
     result.push({ machineId, machineName, segments });
   }

@@ -94,6 +94,17 @@ export const GanttBarChart = memo(function GanttBarChart({
           }
         }
 
+        if (row.machineId === "7") {
+          console.debug("Gantt percentage", {
+            source: "dashboard",
+            machineId: row.machineId,
+            runningSeconds: running * 3600,
+            totalSeconds: total * 3600,
+            percentage: total > 0 ? (running / total) * 100 : 0,
+            segments: row.segments,
+          });
+        }
+
         return total > 0 ? (running / total) * 100 : 0;
       });
     }
@@ -117,6 +128,17 @@ export const GanttBarChart = memo(function GanttBarChart({
 
     return rows.map((r) => {
       const data = latestMap.get(r.machineId);
+      if (r.machineId === "7") {
+        console.debug("Gantt percentage", {
+          source: "monitoring",
+          machineId: r.machineId,
+          runningSeconds: (data?.runningMin ?? 0) * 60,
+          totalSeconds: (data?.totalMin ?? 0) * 60,
+          percentage: data && data.totalMin > 0
+            ? (data.runningMin / data.totalMin) * 100
+            : 0,
+        });
+      }
       if (!data || data.totalMin === 0) return 0;
       return (data.runningMin / data.totalMin) * 100;
     });
