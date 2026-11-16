@@ -156,7 +156,7 @@ export function InputGroupDropdown({ onValueChange }: Props) {
                     }/>
                     <DropdownMenuContent align="end" className="[--radius:0.95rem]">
                         <DropdownMenuGroup>
-                            {values.map((v) => (
+                            {values.filter((v) => v.id <= 2).map((v) => (
                                 <DropdownMenuItem
                                     key={v.id}
                                     onClick={() => handleTypeChange(v)}
