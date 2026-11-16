@@ -194,8 +194,6 @@ export const GanttBarChart = memo(function GanttBarChart({
             MACHINE_STATUS.CYOKOTEI_STOP,
             MACHINE_STATUS.DANDORI,
             MACHINE_STATUS.SETUP,
-            MACHINE_STATUS.PREVENTIVE_MAINTENANCE,
-            MACHINE_STATUS.UNDER_MAINTENANCE,
           ].map((s) => (
             <div key={s} className="flex items-center gap-2">
               <span

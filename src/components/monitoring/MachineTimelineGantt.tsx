@@ -255,8 +255,6 @@ export function MachineTimelineGantt({ machineId, startDate, endDate, selectedPa
             MACHINE_STATUS.CYOKOTEI_STOP,
             MACHINE_STATUS.DANDORI,
             MACHINE_STATUS.SETUP,
-            MACHINE_STATUS.PREVENTIVE_MAINTENANCE,
-            MACHINE_STATUS.UNDER_MAINTENANCE,
             MACHINE_STATUS.OFF,
           ].map((s) => {
             const info = statusSummary.get(s) ?? { totalMinutes: 0, count: 0 };
