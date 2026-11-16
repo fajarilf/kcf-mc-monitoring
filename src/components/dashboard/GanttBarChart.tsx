@@ -25,6 +25,7 @@ interface Props {
   hideLegend?: boolean;
   rowHeight?: number;
   machineId?: string;
+  percentageFromVisibleRows?: boolean;
   /** When provided, running-% is computed from this timeline instead of the latest-product hook. */
   percentTimeline?: MachineTimeline | null;
 }
@@ -41,6 +42,7 @@ export const GanttBarChart = memo(function GanttBarChart({
   hideLegend = false,
   rowHeight,
   machineId,
+  percentageFromVisibleRows = false,
   percentTimeline,
 }: Props) {
   const stepSize = tickStep ?? Math.max(1, Math.round(totalUnits / tickCount));
@@ -71,10 +73,31 @@ export const GanttBarChart = memo(function GanttBarChart({
 
   const { data: latestProductData } = useStatusTimelineLatestProductHook(
     machineId ? { machineId: Number(machineId), paginate: false } : { paginate: false },
-    !percentTimeline,
+    !percentTimeline && !percentageFromVisibleRows,
   );
 
   const runningPcts = useMemo(() => {
+    if (percentageFromVisibleRows) {
+      return rows.map((row) => {
+        let running = 0;
+        let total = 0;
+
+        for (const segment of row.segments) {
+          if (
+            segment.status === MACHINE_STATUS.OFF ||
+            segment.status === MACHINE_STATUS.DANDORI
+          ) continue;
+
+          total += segment.duration;
+          if (segment.status === MACHINE_STATUS.RUNNING) {
+            running += segment.duration;
+          }
+        }
+
+        return total > 0 ? (running / total) * 100 : 0;
+      });
+    }
+
     const latestMap = new Map<string, { runningMin: number; totalMin: number }>();
     const machines = percentTimeline ? [percentTimeline] : (latestProductData?.data ?? []);
     for (const m of machines) {
@@ -97,7 +120,7 @@ export const GanttBarChart = memo(function GanttBarChart({
       if (!data || data.totalMin === 0) return 0;
       return (data.runningMin / data.totalMin) * 100;
     });
-  }, [rows, latestProductData, percentTimeline]);
+  }, [rows, latestProductData, percentTimeline, percentageFromVisibleRows]);
 
   const rowEnds = useMemo(
     () =>

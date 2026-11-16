@@ -316,6 +316,7 @@ export default function DashboardPage() {
             </p>
           ) : (
             <GanttBarChart
+              percentageFromVisibleRows
               rows={rows}
               totalUnits={shift?.hours ?? 12}
               unitLabel="h"
