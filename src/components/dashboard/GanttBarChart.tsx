@@ -26,6 +26,8 @@ interface Props {
   rowHeight?: number;
   machineId?: string;
   percentageFromVisibleRows?: boolean;
+  percentageAfterLatestDandori?: boolean;
+  hidePercentageDuringDandori?: boolean;
   /** When provided, running-% is computed from this timeline instead of the latest-product hook. */
   percentTimeline?: MachineTimeline | null;
 }
@@ -43,6 +45,8 @@ export const GanttBarChart = memo(function GanttBarChart({
   rowHeight,
   machineId,
   percentageFromVisibleRows = false,
+  percentageAfterLatestDandori = false,
+  hidePercentageDuringDandori = false,
   percentTimeline,
 }: Props) {
   const stepSize = tickStep ?? Math.max(1, Math.round(totalUnits / tickCount));
@@ -79,6 +83,15 @@ export const GanttBarChart = memo(function GanttBarChart({
   const runningPcts = useMemo(() => {
     if (percentageFromVisibleRows) {
       return rows.map((row) => {
+        const productionStart = percentageAfterLatestDandori
+          ? row.segments.reduce(
+              (latest, segment) =>
+                segment.status === MACHINE_STATUS.DANDORI
+                  ? Math.max(latest, segment.start + segment.duration)
+                  : latest,
+              0,
+            )
+          : 0;
         let running = 0;
         let total = 0;
 
@@ -88,9 +101,14 @@ export const GanttBarChart = memo(function GanttBarChart({
             segment.status === MACHINE_STATUS.DANDORI
           ) continue;
 
-          total += segment.duration;
+          const duration = Math.max(
+            0,
+            segment.start + segment.duration -
+              Math.max(segment.start, productionStart),
+          );
+          total += duration;
           if (segment.status === MACHINE_STATUS.RUNNING) {
-            running += segment.duration;
+            running += duration;
           }
         }
 
@@ -142,7 +160,7 @@ export const GanttBarChart = memo(function GanttBarChart({
       if (!data || data.totalMin === 0) return 0;
       return (data.runningMin / data.totalMin) * 100;
     });
-  }, [rows, latestProductData, percentTimeline, percentageFromVisibleRows]);
+  }, [rows, latestProductData, percentTimeline, percentageFromVisibleRows, percentageAfterLatestDandori]);
 
   const rowEnds = useMemo(
     () =>
@@ -260,6 +278,14 @@ export const GanttBarChart = memo(function GanttBarChart({
                 const nearEdge = leftPct >= 90;
                 const pct = runningPcts[i];
                 if (pct <= 0) return null;
+                if (hidePercentageDuringDandori) {
+                  const latestSegment = row.segments.reduce<GanttRow["segments"][number] | undefined>(
+                    (latest, segment) =>
+                      !latest || segment.start >= latest.start ? segment : latest,
+                    undefined,
+                  );
+                  if (latestSegment?.status === MACHINE_STATUS.DANDORI) return null;
+                }
                 return (
                   <span
                     className="absolute top-1/2 -translate-y-1/2 z-10 font-semibold whitespace-nowrap rounded px-1"

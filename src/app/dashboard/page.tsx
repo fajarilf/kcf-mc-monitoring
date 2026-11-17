@@ -332,6 +332,8 @@ export default function DashboardPage() {
             </p>
           ) : (
             <GanttBarChart
+              hidePercentageDuringDandori
+              percentageAfterLatestDandori
               percentageFromVisibleRows
               rows={rows}
               totalUnits={shift?.hours ?? 12}
