@@ -25,18 +25,26 @@ const MS_PER_HOUR = 1000 * 60 * 60;
 const MS_PER_DAY = 24 * MS_PER_HOUR;
 
 function countDandoriOccurrences(
-  segments: { partNo?: string | null; startMs: number; endMs: number }[],
+  segments: { status: MACHINE_STATUS; startMs: number; endMs: number }[],
 ): number {
   const sorted = [...segments].sort((a, b) => a.startMs - b.startMs);
   let count = 0;
   let previous: (typeof sorted)[number] | undefined;
+  let runningBetween = false;
 
   for (const current of sorted) {
+    if (current.status === MACHINE_STATUS.RUNNING) {
+      runningBetween = true;
+      continue;
+    }
+    if (current.status !== MACHINE_STATUS.DANDORI) continue;
+
     const sameOccurrence =
       previous !== undefined &&
-      current.startMs - previous.endMs <= 60 * 60 * 1000;
+      (current.startMs - previous.endMs <= MS_PER_HOUR || !runningBetween);
     if (!sameOccurrence) count += 1;
     previous = current;
+    runningBetween = false;
   }
 
   return count;
@@ -221,7 +229,7 @@ export function MachineTimelineGantt({ machineId, startDate, endDate, selectedPa
       : groups;
 
     const summary = new Map<MACHINE_STATUS, { totalMinutes: number; count: number }>();
-    const dandoriSegments: { partNo?: string | null; startMs: number; endMs: number }[] = [];
+    const countingSegments: { status: MACHINE_STATUS; startMs: number; endMs: number }[] = [];
     for (const group of filtered) {
       for (const seg of group.timeline) {
         const segStartMs = new Date(seg.start).getTime();
@@ -229,8 +237,8 @@ export function MachineTimelineGantt({ machineId, startDate, endDate, selectedPa
         if (segStartMs >= windowEndMs || segEndMs <= windowStartMs) continue;
         const minutes = seg.duration / 60;
         if (minutes <= 0) continue;
-        if (seg.status === MACHINE_STATUS.DANDORI) {
-          dandoriSegments.push({ partNo: group.partNo, startMs: segStartMs, endMs: segEndMs });
+        if (seg.status === MACHINE_STATUS.DANDORI || seg.status === MACHINE_STATUS.RUNNING) {
+          countingSegments.push({ status: seg.status, startMs: segStartMs, endMs: segEndMs });
         }
         const existing = summary.get(seg.status) ?? { totalMinutes: 0, count: 0 };
         summary.set(seg.status, {
@@ -241,7 +249,7 @@ export function MachineTimelineGantt({ machineId, startDate, endDate, selectedPa
     }
     const dandoriSummary = summary.get(MACHINE_STATUS.DANDORI);
     if (dandoriSummary) {
-      dandoriSummary.count = countDandoriOccurrences(dandoriSegments);
+      dandoriSummary.count = countDandoriOccurrences(countingSegments);
     }
     return summary;
   }, [timelineData?.data, product, chartNow, windowStartMs, windowHours]);
