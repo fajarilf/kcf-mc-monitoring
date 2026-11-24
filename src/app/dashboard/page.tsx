@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Activity, Clock, PowerOff, Wrench, XCircle } from "lucide-react";
+import { Activity, Clock, HardHat, PowerOff, ShieldCheck, Wrench, XCircle } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -228,6 +228,8 @@ export default function DashboardPage() {
       dandori: by(MACHINE_STATUS.DANDORI),
       cyokotei: by(MACHINE_STATUS.CYOKOTEI_STOP),
       setup: by(MACHINE_STATUS.SETUP),
+      preventiveMaintenance: by(MACHINE_STATUS.PREVENTIVE_MAINTENANCE),
+      underMaintenance: by(MACHINE_STATUS.UNDER_MAINTENANCE),
       off: by(MACHINE_STATUS.OFF),
     };
   }, [machineData, machineStatuses]);
@@ -260,7 +262,7 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
         <StatCard
           label="Running"
           value={counts.running}
@@ -284,6 +286,18 @@ export default function DashboardPage() {
           value={counts.cyokotei}
           icon={XCircle}
           tone="red"
+        />
+        <StatCard
+          label="Preventive Maintenance"
+          value={counts.preventiveMaintenance}
+          icon={ShieldCheck}
+          tone="cyan"
+        />
+        <StatCard
+          label="Under Maintenance"
+          value={counts.underMaintenance}
+          icon={HardHat}
+          tone="violet"
         />
         <StatCard label="Off" value={counts.off} icon={PowerOff} tone="black" />
       </div>

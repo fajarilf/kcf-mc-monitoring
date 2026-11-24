@@ -76,6 +76,22 @@ const accentDot: Record<MACHINE_STATUS, string> = {
     "bg-violet-500 shadow-[0_0_0_3px_rgba(139,92,246,0.18)]",
 };
 
+function classifyReportTimeline(groups: ProductionGroup[]) {
+  const timeline = groups
+    .flatMap((group) => group.timeline.map((seg) => ({ seg, user: group.user })))
+    .sort((a, b) => new Date(a.seg.start).getTime() - new Date(b.seg.start).getTime());
+
+  let inDandori = true;
+  return timeline.map((entry) => {
+    if (entry.seg.status === MACHINE_STATUS.RUNNING) {
+      inDandori = false;
+    } else if (entry.seg.status === MACHINE_STATUS.DANDORI) {
+      inDandori = true;
+    }
+    return { ...entry, isDandori: inDandori };
+  });
+}
+
 export default function MachineDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -119,13 +135,14 @@ export default function MachineDetailPage() {
     machine ? `MACHINE${machine?.id}` : null,
     (data) => {
       if (data?.Machine) {
-        const { OPERATORNAME, WORKNAME, PRODUCTCOUNTER, TIMECOUNTER, STATUS } = data.Machine;
+        const { OPERATORNAME, WORKNAME, PRODUCTCOUNTER, TIMECOUNTER, STATUS, MAINTENANCE_OP } = data.Machine;
         setMachineInfo({
           operator: OPERATORNAME,
           product: WORKNAME,
           counter_product: PRODUCTCOUNTER,
           timer_elapsed: TIMECOUNTER,
           status: STATUS,
+          maintenance_operator: MAINTENANCE_OP,
         });
         setSeconds(TIMECOUNTER);
       }
@@ -233,16 +250,17 @@ export default function MachineDetailPage() {
           ...new Set(blockGroups.map((g) => g.user).filter(Boolean)),
         ].join(", ") || "-";
 
-        // Scope dandori, problem, and production entries to this block only
-        const dandoriEntries = blockGroups.flatMap((g) =>
-          g.timeline.filter((s) => s.status === MACHINE_STATUS.DANDORI).map((seg) => ({
+        // Classify across operators so each phase follows the block's timeline.
+        const reportTimeline = classifyReportTimeline(blockGroups);
+        const dandoriEntries = reportTimeline
+          .filter((entry) => entry.isDandori)
+          .map(({ seg, user }) => ({
             DandoriDate: toDateString(seg.start),
             DandoriStart: toTimeString(seg.start),
             DandoriEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
             DandoriDuration: durationMinutes(seg.duration),
-            DandoriPIC: g.user,
-          })),
-        );
+            DandoriPIC: user,
+          }));
 
         const problemEntries = blockGroups.flatMap((g) =>
           g.timeline
@@ -258,19 +276,17 @@ export default function MachineDetailPage() {
             })),
         );
 
-        const productionEntries = blockGroups.flatMap((group) =>
-          group.timeline
-            .filter((s) => s.status !== MACHINE_STATUS.DANDORI && s.status !== MACHINE_STATUS.OFF)
-            .map((seg) => ({
-              ProductionDate: toDateString(seg.start),
-              ProductionStart: toTimeString(seg.start),
-              ProductionEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
-              ProductionDuration: durationMinutes(seg.duration),
-              Status: statusLabel[seg.status],
-              ProductionPIC: group.user || "-",
-              ProductionCounter: seg.status === MACHINE_STATUS.RUNNING ? seg.counter : null,
-            })),
-        );
+        const productionEntries = reportTimeline
+          .filter(({ seg, isDandori }) => !isDandori && seg.status !== MACHINE_STATUS.OFF)
+          .map(({ seg, user }) => ({
+            ProductionDate: toDateString(seg.start),
+            ProductionStart: toTimeString(seg.start),
+            ProductionEnd: seg.end ? toTimeString(seg.end) : toTimeString(new Date().toISOString()),
+            ProductionDuration: durationMinutes(seg.duration),
+            Status: statusLabel[seg.status],
+            ProductionPIC: user || "-",
+            ProductionCounter: seg.status === MACHINE_STATUS.RUNNING ? seg.counter : null,
+          }));
 
         const totalDandori = Number(dandoriEntries.reduce(
           (sum, p) => sum + p.DandoriDuration,
@@ -482,7 +498,9 @@ export default function MachineDetailPage() {
               variant="outline"
               className={cn("border", statusColorClass[machineInfo?.status || MACHINE_STATUS.OFF])}
             >
-              {statusLabel[machineInfo?.status || MACHINE_STATUS.OFF]}
+              {machineInfo?.status === MACHINE_STATUS.UNDER_MAINTENANCE && machineInfo.maintenance_operator?.trim()
+                ? `UNDER MAINTENANCE by ${machineInfo.maintenance_operator.trim()}`
+                : statusLabel[machineInfo?.status || MACHINE_STATUS.OFF]}
             </Badge>
           </div>
         </CardHeader>

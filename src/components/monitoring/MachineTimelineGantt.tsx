@@ -24,6 +24,24 @@ import { MachineActivityChartSkeleton } from "./Skeleton";
 const MS_PER_HOUR = 1000 * 60 * 60;
 const MS_PER_DAY = 24 * MS_PER_HOUR;
 
+function countDandoriOccurrences(
+  segments: { partNo?: string | null; startMs: number; endMs: number }[],
+): number {
+  const sorted = [...segments].sort((a, b) => a.startMs - b.startMs);
+  let count = 0;
+  let previous: (typeof sorted)[number] | undefined;
+
+  for (const current of sorted) {
+    const sameOccurrence =
+      previous !== undefined &&
+      current.startMs - previous.endMs <= 60 * 60 * 1000;
+    if (!sameOccurrence) count += 1;
+    previous = current;
+  }
+
+  return count;
+}
+
 function formatClock(h: number, addSecond: boolean = true): string {
   const wrapped = ((h % 24) + 24) % 24;
   const hh = Math.floor(wrapped);
@@ -203,6 +221,7 @@ export function MachineTimelineGantt({ machineId, startDate, endDate, selectedPa
       : groups;
 
     const summary = new Map<MACHINE_STATUS, { totalMinutes: number; count: number }>();
+    const dandoriSegments: { partNo?: string | null; startMs: number; endMs: number }[] = [];
     for (const group of filtered) {
       for (const seg of group.timeline) {
         const segStartMs = new Date(seg.start).getTime();
@@ -210,12 +229,19 @@ export function MachineTimelineGantt({ machineId, startDate, endDate, selectedPa
         if (segStartMs >= windowEndMs || segEndMs <= windowStartMs) continue;
         const minutes = seg.duration / 60;
         if (minutes <= 0) continue;
+        if (seg.status === MACHINE_STATUS.DANDORI) {
+          dandoriSegments.push({ partNo: group.partNo, startMs: segStartMs, endMs: segEndMs });
+        }
         const existing = summary.get(seg.status) ?? { totalMinutes: 0, count: 0 };
         summary.set(seg.status, {
           totalMinutes: existing.totalMinutes + minutes,
           count: existing.count + 1,
         });
       }
+    }
+    const dandoriSummary = summary.get(MACHINE_STATUS.DANDORI);
+    if (dandoriSummary) {
+      dandoriSummary.count = countDandoriOccurrences(dandoriSegments);
     }
     return summary;
   }, [timelineData?.data, product, chartNow, windowStartMs, windowHours]);
@@ -255,6 +281,8 @@ export function MachineTimelineGantt({ machineId, startDate, endDate, selectedPa
             MACHINE_STATUS.CYOKOTEI_STOP,
             MACHINE_STATUS.DANDORI,
             MACHINE_STATUS.SETUP,
+            MACHINE_STATUS.PREVENTIVE_MAINTENANCE,
+            MACHINE_STATUS.UNDER_MAINTENANCE,
             MACHINE_STATUS.OFF,
           ].map((s) => {
             const info = statusSummary.get(s) ?? { totalMinutes: 0, count: 0 };

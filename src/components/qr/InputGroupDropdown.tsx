@@ -42,17 +42,22 @@ export function InputGroupDropdown({ onValueChange }: Props) {
 
     const isOperator = selectedType.source === "operator";
     const isWorkName = selectedType.source === "product";
+    const isUnderMaintenance = selectedType.id === 3 || selectedType.id === 4;
 
     const debouncedSearchUser = useDebouncedValue(searchUser);
     const debouncedSearchProduct = useDebouncedValue(searchProduct);
     const { data: userData } = useUsersHook(
-        { search: debouncedSearchUser },
+        { search: debouncedSearchUser, ...(isUnderMaintenance ? { paginate: false } : {}) },
         { enabled: isOperator },
     );
     const { data: productData } = useProductHook(
         { search: debouncedSearchProduct },
         { enabled: isWorkName },
     );
+
+    const users = isUnderMaintenance
+        ? userData?.data.filter((user) => user.role?.trim().toLowerCase() === "maintenance")
+        : userData?.data;
 
     const handleTypeChange = (type: DropdownValue) => {
         setSelectedType(type);
@@ -69,7 +74,7 @@ export function InputGroupDropdown({ onValueChange }: Props) {
         <InputGroup>
             {isOperator ? (
                 <Combobox
-                    items={userData?.data}
+                    items={users}
                     value={user}
                     onValueChange={(data) => {
                         setUser(data);
@@ -156,7 +161,7 @@ export function InputGroupDropdown({ onValueChange }: Props) {
                     }/>
                     <DropdownMenuContent align="end" className="[--radius:0.95rem]">
                         <DropdownMenuGroup>
-                            {values.filter((v) => v.id <= 2).map((v) => (
+                            {values.map((v) => (
                                 <DropdownMenuItem
                                     key={v.id}
                                     onClick={() => handleTypeChange(v)}

@@ -8,6 +8,8 @@ export interface MqttResponses {
         PRODUCTCOUNTER: number,
         STATUS: MACHINE_STATUS,
         TIMECOUNTER: number,
+        MAINTENANCE_OP: string,
+        REASON: string,
     }
     timestamp: Date
 }

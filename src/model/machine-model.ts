@@ -22,4 +22,5 @@ export type MachineInformation = {
   counter_product: number,
   timer_elapsed: number,
   status: MACHINE_STATUS,
+  maintenance_operator?: string,
 }

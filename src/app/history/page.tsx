@@ -33,6 +33,8 @@ import { Pagination } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
 import { useMachineHook } from "@/hooks/use-machine";
 import { useAlarmHistoryHook } from "@/hooks/use-alarm";
+import { MaintenanceHistory } from "@/components/history/MaintenanceHistory";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type {
   AlarmHistory,
   AlarmHistoryParams,
@@ -105,7 +107,7 @@ function StatusPill({ status }: { status: AlarmStatus }) {
   );
 }
 
-export default function HistoryPage() {
+function AlarmHistoryTab() {
   const [machineId, setMachineId] = useState<string>(ALL);
   const [status, setStatus] = useState<string>(ALL);
   const [startDate, setStartDate] = useState<string>("");
@@ -352,6 +354,31 @@ export default function HistoryPage() {
           />
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+export default function HistoryPage() {
+  const [activeTab, setActiveTab] = useState("alarms");
+
+  return (
+    <div className="flex flex-col gap-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList variant="line">
+          <TabsTrigger value="alarms">Alarm History</TabsTrigger>
+          <TabsTrigger value="maintenance">Maintenance History</TabsTrigger>
+        </TabsList>
+        {activeTab === "alarms" && (
+          <TabsContent value="alarms">
+            <AlarmHistoryTab />
+          </TabsContent>
+        )}
+        {activeTab === "maintenance" && (
+          <TabsContent value="maintenance">
+            <MaintenanceHistory />
+          </TabsContent>
+        )}
+      </Tabs>
     </div>
   );
 }

@@ -73,13 +73,14 @@ export function MachineCardCompact({ machine }: { machine: MachineData }) {
 
   useMqttJson<MqttResponses>(`MACHINE${machine.id}`, (data) => {
     if (data?.Machine) {
-      const { OPERATORNAME, WORKNAME, PRODUCTCOUNTER, STATUS } = data.Machine;
+      const { OPERATORNAME, WORKNAME, PRODUCTCOUNTER, STATUS, MAINTENANCE_OP } = data.Machine;
       setCardDetail({
         operator: OPERATORNAME?.replace(/^-+|-+$/g, ""),
         product: WORKNAME,
         counter_product: PRODUCTCOUNTER,
         timer_elapsed: 0,
         status: STATUS,
+        maintenance_operator: MAINTENANCE_OP,
       });
       setAccent(statusAccent[STATUS]);
     }
@@ -118,7 +119,9 @@ export function MachineCardCompact({ machine }: { machine: MachineData }) {
           variant="outline"
           className={cn("border text-[10px] px-1.5 py-0", statusColorClass[cardDetail?.status ?? MACHINE_STATUS.OFF])}
         >
-          {statusLabel[cardDetail?.status ?? MACHINE_STATUS.OFF]}
+          {cardDetail?.status === MACHINE_STATUS.UNDER_MAINTENANCE && cardDetail.maintenance_operator?.trim()
+            ? `UNDER MAINTENANCE by ${cardDetail.maintenance_operator.trim()}`
+            : statusLabel[cardDetail?.status ?? MACHINE_STATUS.OFF]}
         </Badge>
       </CardHeader>
       <CardContent className="relative flex flex-1 flex-col gap-1.5 px-3 pt-1 pb-2.5">

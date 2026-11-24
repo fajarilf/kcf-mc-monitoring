@@ -196,9 +196,6 @@ export function MachineActivityChart({ machineId, startDate, endDate }: Props) {
         position: "top",
         align: "end",
         labels: {
-          filter: (item) =>
-            item.text !== statusLabel[MACHINE_STATUS.PREVENTIVE_MAINTENANCE] &&
-            item.text !== statusLabel[MACHINE_STATUS.UNDER_MAINTENANCE],
           color: legendColor,
           usePointStyle: true,
           boxWidth: 8,

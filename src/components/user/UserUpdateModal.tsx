@@ -32,7 +32,7 @@ type Props = {
   onSuccess: () => void;
 };
 
-const ROLES = ["admin", "operator", "viewer"];
+const ROLES = ["admin", "operator", "viewer", "maintenance"];
 
 export function UserUpdateModal({ user, open, onOpenChange, onSuccess }: Props) {
   const isEdit = !!user;
