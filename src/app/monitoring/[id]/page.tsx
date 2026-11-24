@@ -76,6 +76,10 @@ const accentDot: Record<MACHINE_STATUS, string> = {
     "bg-violet-500 shadow-[0_0_0_3px_rgba(139,92,246,0.18)]",
 };
 
+const isMaintenance = (status: MACHINE_STATUS) =>
+  status === MACHINE_STATUS.UNDER_MAINTENANCE ||
+  status === MACHINE_STATUS.PREVENTIVE_MAINTENANCE;
+
 function classifyReportTimeline(groups: ProductionGroup[]) {
   const timeline = groups
     .flatMap((group) => group.timeline.map((seg) => ({ seg, user: group.user })))
@@ -253,7 +257,7 @@ export default function MachineDetailPage() {
         // Classify across operators so each phase follows the block's timeline.
         const reportTimeline = classifyReportTimeline(blockGroups);
         const dandoriEntries = reportTimeline
-          .filter((entry) => entry.isDandori)
+          .filter(({ seg, isDandori }) => isDandori && !isMaintenance(seg.status))
           .map(({ seg, user }) => ({
             DandoriDate: toDateString(seg.start),
             DandoriStart: toTimeString(seg.start),
@@ -277,7 +281,11 @@ export default function MachineDetailPage() {
         );
 
         const productionEntries = reportTimeline
-          .filter(({ seg, isDandori }) => !isDandori && seg.status !== MACHINE_STATUS.OFF)
+          .filter(({ seg, isDandori }) =>
+            !isDandori &&
+            seg.status !== MACHINE_STATUS.OFF &&
+            !isMaintenance(seg.status)
+          )
           .map(({ seg, user }) => ({
             ProductionDate: toDateString(seg.start),
             ProductionStart: toTimeString(seg.start),
